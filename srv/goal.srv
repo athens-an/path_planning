@@ -1,0 +1,4 @@
+int64 goalCellX
+int64 goalCellY
+---
+bool success

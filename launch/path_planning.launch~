@@ -1,0 +1,11 @@
+<launch>
+  	
+	<include file="$(find stdr_launchers)/launch/server_with_map_and_gui_plus_robot.launch" />
+	
+	
+	<node pkg="path_planning" type="path_planning" name="path_planning" output="screen"/>
+	<rosparam file="$(find path_planning)/config/dokimi.yaml command="load" ns="path_planning""/>
+	<node pkg="path_planning" type="map" name="map" output="screen"/>
+	
+	
+</launch>
