@@ -144,7 +144,7 @@ include_directories( include
 # add_dependencies(path_planning ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
- add_executable(path_planning src/path_planning/path_planning.cpp)
+ add_executable(path_planning src/path_planning/main.cpp src/path_planning/path_planning.cpp )
  target_link_libraries(path_planning ${catkin_LIBRARIES})
  add_dependencies(path_planning path_planning_generate_messages_cpp)
  
