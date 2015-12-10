@@ -36,16 +36,25 @@ void Planner::calculatePath()
 
 void Planner::currentPosition(const ros::TimerEvent& e)
 {
-//create a point in the robot0 frame to transform to the map frame
-			ROS_INFO("CURRENT POSITION (pose_point)");
+	
+	ROS_INFO("CURRENT POSITION (pose_point)");
 
+	std::vector <cell> best_path;
 	try{
 		
 		tf::StampedTransform transform;
 		_listener.lookupTransform("map", "robot0", ros::Time(0), transform);
-	
+		
+		curr_cell_x = transform.getOrigin()[0];
+		curr_cell_y = transform.getOrigin()[1];
+		
 		ROS_INFO("CURRENT POSITION (pose_point): (%.2f, %.2f, %.2f)",
-		transform.getOrigin()[0], transform.getOrigin()[1], 0.0);
+		curr_cell_x, curr_cell_y, 0.0);
+		
+		isCellInMap(goal_cell_x, goal_cell_y);
+		goalCellValid(goal_cell_x, goal_cell_y);
+		best_path = path(curr_cell_x, curr_cell_y, goal_cell_x, goal_cell_y);
+		
 		
 	}
 	catch(tf::TransformException& ex){
@@ -130,7 +139,6 @@ bool Planner::isFree(int ii, int jj)
 }
 
 
-
 //elegxei poia einai ta geitonika kelia kai krataei auta poy einai eleuthera
 std::vector <cell> Planner::findNeighbourValid (int curr_cell_x, int curr_cell_y) 
 {
@@ -183,6 +191,7 @@ int Planner::getCellIndex(int ii, int jj)
 	return cell_index;
 }
 
+
 //upologizetai to h(x) to opoio einai iso me thn apostash tou trexontos keliou apo ton teliko stoxo (gia oxi diagwnia)
 int Planner::calculateHScore(int curr_cell_x, int curr_cell_y, int goal_cell_x, int goal_cell_y) 
 {
@@ -190,25 +199,14 @@ int Planner::calculateHScore(int curr_cell_x, int curr_cell_y, int goal_cell_x, 
 	return h_score;
 }
 
-//arxikopoiw to gScore se enan pinaka
-std::vector <int> Planner::initializePlanner (int curr_cell_x, int curr_cell_y, int goal_cell_x, int goal_cell_y)
-{
-	g_score = new int [map_size];
-	for (unsigned int ii = 0; ii < map_size; ii ++) 
-	{
-		g_score[ii] = map_size + 1;
-		
-	}
-
-}
 
 
-std::vector <int> Planner::path (int curr_cell_x, int curr_cell_y, int goal_cell_x, int goal_cell_y, int g_score[])
+std::vector <cell> Planner::path (int curr_cell_x, int curr_cell_y, int goal_cell_x, int goal_cell_y)
 {
 	std::vector <cell> open_list;
 	std::vector <cell> closed_list;
-	std::vector <int> best_path;
-	int possible_path;
+	std::vector <cell> best_path;
+	cell possible_path;
 	
 	cell C;
 	C.x = curr_cell_x;
@@ -216,24 +214,54 @@ std::vector <int> Planner::path (int curr_cell_x, int curr_cell_y, int goal_cell
 	open_list.push_back(C);
 	
 	
-	g_score[curr_cell_x][curr_cell_y] = 0; //gia to keli sto opoio vriskomaste
-	h_score[curr_cell_x][curr_cell_y] = calculateHScore(curr_cell_x, curr_cell_y, goal_cell_x, goal_cell_y);
-	f_score[curr_cell_x][curr_cell_y] = g_score[curr_cell_x][curr_cell_y] + h_score[curr_cell_x][curr_cell_y];
+	double infinity = std::numeric_limits<double>::infinity();
+	
+	int ** g_score;
+	g_score = new int *[map_size * map_size];
+	for (unsigned int ii = 0; ii < map_size * map_size; ii ++) 
+	{
+		for (unsigned int jj = 0; jj < map_size * map_size; jj ++)
+		{
+			g_score[ii][jj] = map_size * map_size;
+		}
+	}
+	
+	int ** f_score ;
+	f_score = new int *[map_size * map_size];
+	
+	for (unsigned int ii = 0; ii < map_size * map_size; ii ++) 
+	{
+		for (unsigned int jj = 0; jj < map_size * map_size; jj ++)
+		{
+			f_score[ii][jj] = infinity;
+		}
+	}
 		
-	while (!open_list.empty() && (g_score[goal_cell_x][goal_cell_y] == map_size + 1)) {
+	
+	
+	g_score[curr_cell_x][curr_cell_y] = 0; //gia to keli sto opoio vriskomaste
+	h_score = calculateHScore(curr_cell_x, curr_cell_y, goal_cell_x, goal_cell_y);
+	f_score[curr_cell_x][curr_cell_y] = g_score[curr_cell_x][curr_cell_y] + h_score;
+		
+	while (!open_list.empty() && (g_score[goal_cell_x][goal_cell_y] == map_size * map_size)) {
 		
 		std::vector <cell> neighbour_cell;
 		neighbour_cell = findNeighbourValid(curr_cell_x, curr_cell_y);
 		for (unsigned int ii = 0; ii < value; ii++)
 		{
 			
-			if (g_score[neighbour_cell[ii].x][neighbour_cell[ii].y] == map_size + 1)
+			if (g_score[neighbour_cell[ii].x][neighbour_cell[ii].y] == map_size * map_size)
 			{
 				ROS_INFO("DEN TO EXEI EPISKEFTHEI AKOMA");
 				g_score[neighbour_cell[ii].x][neighbour_cell[ii].y] = g_score[curr_cell_x][curr_cell_y] + 1;
-				h_score[neighbour_cell[ii].x][neighbour_cell[ii].y] = calculateHScore(neighbour_cell[ii].x, neighbour_cell[ii].y, goal_cell_x, goal_cell_y);
-				f_score[neighbour_cell[ii].x][neighbour_cell[ii].y] = g_score[neighbour_cell[ii].x][neighbour_cell[ii].y] + h_score[neighbour_cell[ii].x][neighbour_cell[ii].y];
-				addToOpenList(neighbour_cell[ii].x, neighbour_cell[ii].y, f_score);
+				h_score = calculateHScore(neighbour_cell[ii].x, neighbour_cell[ii].y, goal_cell_x, goal_cell_y);
+				f_score[neighbour_cell[ii].x][neighbour_cell[ii].y] = g_score[neighbour_cell[ii].x][neighbour_cell[ii].y] + h_score;
+				
+				C.x = neighbour_cell[ii].x;
+				C.y = neighbour_cell[ii].y;
+				C.f_score = f_score[neighbour_cell[ii].x][neighbour_cell[ii].y];
+				open_list.push_back(C);
+				
 			}
 			g_score[curr_cell_x][curr_cell_y] = g_score[neighbour_cell[ii].x][neighbour_cell[ii].y];
 			
@@ -262,17 +290,6 @@ std::vector <int> Planner::path (int curr_cell_x, int curr_cell_y, int goal_cell
 	}
 	
 }
-
-//prosthetw sth lista to geitoniko keli
-std::vector <cell> Planner::addToOpenList(int neighbour_cell_x, int neighbour_cell_y, float f_score)
-{
-	std::vector <cell> open_list;
-	cell C;
-	C.x = neighbour_cell_x;
-	C.y = neighbour_cell_y;
-	C.f_score = f_score;
-	open_list.push_back(C);
-}	
 
 
 

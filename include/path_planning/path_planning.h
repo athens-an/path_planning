@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <limits>
 
 #include "ros/ros.h"
 #include "geometry_msgs/PoseStamped.h"
@@ -54,9 +55,7 @@ class Planner{
 	bool makePlan(const geometry_msgs::PoseStamped& start, const geometry_msgs::PoseStamped& goal, std::vector<geometry_msgs::PoseStamped>& plan);
  
 	std::vector <cell> findNeighbourValid (int curr_cell_x, int curr_cell_y);
-	std::vector <int> path (int curr_cell_x, int curr_cell_y, int goal_cell_x, int goal_cell_y, int g_score[]);
-	std::vector <cell> addToOpenList(int neighbour_cell_x, int neighbour_cell_yellY, float f_score);
-	std::vector <int> initializePlanner (int curr_cell_x, int curr_cell_y, int goal_cell_x, int goal_cell_y);
+	std::vector <cell> path (int curr_cell_x, int curr_cell_y, int goal_cell_x, int goal_cell_y);
 	
 	bool k;
 	float goal_cell_x;
@@ -68,9 +67,8 @@ class Planner{
 	float resolution;
 	int map_size;
 	int value;
-	int * g_score;
-	int * h_score;
-	int * f_score;
+	int h_score;
+	int ** f_score;
 	
 			
 
