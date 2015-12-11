@@ -37,8 +37,6 @@ void Planner::calculatePath()
 void Planner::currentPosition(const ros::TimerEvent& e)
 {
 	
-	ROS_INFO("CURRENT POSITION (pose_point)");
-
 	std::vector <cell> best_path;
 	try{
 		
@@ -86,7 +84,7 @@ bool Planner::isCellInMap(float x, float y)
 	bool valid = true;
 	
 	if (x > (width * resolution) || y > (height * resolution)) {
-		ROS_INFO("cell is not inside the map");
+		ROS_INFO("CELL IS NOT INSIDE THE MAP");
 		valid = false;
 	}
 
@@ -115,7 +113,7 @@ bool Planner::goalCellValid(int goal_cell_x, int goal_cell_y)
 	bool valid = true;
 	bool free_goal_cell = isFree(goal_cell_x, goal_cell_y);
 	if (!free_goal_cell) {
-		ROS_INFO("The goal cell is an obstacle");
+		ROS_INFO("THE GOAL CELL IS AN OBSTACLE");
 		valid = false;
 	}
 	return valid;
@@ -128,12 +126,12 @@ bool Planner::isFree(int ii, int jj)
 	int cell_index = getCellIndex(ii, jj);
 	if (cell_index == 0)
 	{
-		ROS_INFO("Cell is free");
+		ROS_INFO("CELL IS FREE");
 		valid = true;
 	}
 	else 
 	{
-		ROS_INFO("Cell is an obstacle");
+		ROS_INFO("CELL IS AN OBSTACLE");
 	}
 	return valid;
 }
@@ -203,35 +201,39 @@ int Planner::calculateHScore(int curr_cell_x, int curr_cell_y, int goal_cell_x, 
 
 std::vector <cell> Planner::path (int curr_cell_x, int curr_cell_y, int goal_cell_x, int goal_cell_y)
 {
+	
 	std::vector <cell> open_list;
 	std::vector <cell> closed_list;
 	std::vector <cell> best_path;
-	cell possible_path;
 	
 	cell C;
 	C.x = curr_cell_x;
 	C.y = curr_cell_y;
 	open_list.push_back(C);
 	
+	int counter = 0;
 	
 	double infinity = std::numeric_limits<double>::infinity();
 	
 	int ** g_score;
-	g_score = new int *[map_size * map_size];
-	for (unsigned int ii = 0; ii < map_size * map_size; ii ++) 
+	g_score = new int *[map_size];
+	
+	for (unsigned int ii = 0; ii < map_size; ii ++) 
 	{
-		for (unsigned int jj = 0; jj < map_size * map_size; jj ++)
+		g_score[ii] = new int [map_size];
+		for (unsigned int jj = 0; jj < map_size; jj ++) 
 		{
 			g_score[ii][jj] = map_size * map_size;
 		}
 	}
 	
 	int ** f_score ;
-	f_score = new int *[map_size * map_size];
+	f_score = new int *[map_size];
 	
-	for (unsigned int ii = 0; ii < map_size * map_size; ii ++) 
+	for (unsigned int ii = 0; ii < map_size; ii ++) 
 	{
-		for (unsigned int jj = 0; jj < map_size * map_size; jj ++)
+		f_score[ii] = new int [map_size];
+		for (unsigned int jj = 0; jj < map_size; jj ++) 
 		{
 			f_score[ii][jj] = infinity;
 		}
@@ -245,13 +247,15 @@ std::vector <cell> Planner::path (int curr_cell_x, int curr_cell_y, int goal_cel
 		
 	while (!open_list.empty() && (g_score[goal_cell_x][goal_cell_y] == map_size * map_size)) {
 		
+		
 		std::vector <cell> neighbour_cell;
 		neighbour_cell = findNeighbourValid(curr_cell_x, curr_cell_y);
-		for (unsigned int ii = 0; ii < value; ii++)
+		for (unsigned int ii = 0; ii < value; ii ++)
 		{
-			
-			if (g_score[neighbour_cell[ii].x][neighbour_cell[ii].y] == map_size * map_size)
+
+			if (g_score[neighbour_cell[ii].x][neighbour_cell[ii].y] == map_size * map_size) //dhladh den exei episkeuthei akoma
 			{
+
 				ROS_INFO("DEN TO EXEI EPISKEFTHEI AKOMA");
 				g_score[neighbour_cell[ii].x][neighbour_cell[ii].y] = g_score[curr_cell_x][curr_cell_y] + 1;
 				h_score = calculateHScore(neighbour_cell[ii].x, neighbour_cell[ii].y, goal_cell_x, goal_cell_y);
@@ -271,23 +275,33 @@ std::vector <cell> Planner::path (int curr_cell_x, int curr_cell_y, int goal_cel
 			if (ii > 1) 
 			{
 				if (f_score[neighbour_cell[ii].x][neighbour_cell[ii].y] < f_score[neighbour_cell[ii - 1].x][neighbour_cell[ii - 1].y]) {
-					possible_path = neighbour_cell[ii];
+					C.x = neighbour_cell[ii].x;
+					C.y = neighbour_cell[ii].y;
 				}
 				else {
-					possible_path = neighbour_cell[ii-1];
+					C.x = neighbour_cell[ii-1].x;
+					C.y = neighbour_cell[ii-1].y;
 				}
 			}
 			else {
-				possible_path = neighbour_cell[ii];
+					C.x = neighbour_cell[ii].x;
+					C.y = neighbour_cell[ii].y;
 			}	
 			
 		}
-		best_path = path(possible_path, g_score);
-		C.cell = possible_path;
-		open_list.remove(C);
-		closed_list.push_back(C);
 		
+		open_list.erase(open_list.begin());
+		closed_list.push_back(C);
+
+		for (unsigned int ii = 0; ii < map_size; ii ++) 
+		{		
+			delete [] g_score[ii];
+			delete [] f_score[ii];
+		}
+		delete [] g_score;
+		delete [] f_score;
 	}
+	
 	
 }
 

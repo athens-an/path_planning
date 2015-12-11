@@ -1,4 +1,4 @@
-int64 goalCellX
-int64 goalCellY
+int64 goal_cell_x
+int64 goal_cell_y
 ---
 bool success

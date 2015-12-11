@@ -12,17 +12,10 @@
 
 
 
-
-
 struct cell {
 	int x;
 	int y;
 	int f_score;
-};
-
-struct neighbour {
-	int neighbour_cell_x;
-	int neighbour_cell_y;
 };
 
 
@@ -36,7 +29,6 @@ class Planner{
 	tf::TransformListener _listener;
 	
 	public:
-	
 	
 	Planner();
 	bool goal(path_planning::goalRequest &req, path_planning::goalResponse &res);
@@ -68,9 +60,6 @@ class Planner{
 	int map_size;
 	int value;
 	int h_score;
-	int ** f_score;
 	
-			
-
 };
 	
