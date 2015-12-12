@@ -188,8 +188,6 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 		C.x = _curr_cell_x;
 		C.y = _curr_cell_y;
 		
-									ROS_INFO("KALA EINAI");
-
 		for (unsigned int ii = 1; ii <= 3; ii ++) 
 		{
 			for (unsigned int jj = 1; jj <= 3; jj ++) 
@@ -254,7 +252,7 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 		
 		_curr_cell_x = N_C.x;
 		_curr_cell_y = N_C.y;
-		ROS_INFO("ISWWWS %d %d", _curr_cell_x, _curr_cell_y);
+		ROS_INFO("trexon %d %d", _curr_cell_x, _curr_cell_y);
 			
 		open_list.erase(open_list.begin() + counter);
 		closed_list.push_back(C);
@@ -262,7 +260,6 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 
 		counter += neighbour_cell.size();
 		
-		ROS_INFO("TELEIWSEEEES??");
 	}
 	
 	for (unsigned int ii = 0; ii < _width; ii ++) 
