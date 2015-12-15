@@ -17,7 +17,7 @@
 struct cell {
 	int x;
 	int y;
-	int f_score;
+	float f_score;
 };
 
 
@@ -31,10 +31,14 @@ class Planner{
 	tf::TransformListener _listener;
 	
 	int * _index;
-	float _goal_cell_x;
-	float _goal_cell_y;
-	float _curr_cell_x;
-	float _curr_cell_y;
+	
+	int _goal_cell_x;
+	int _goal_cell_y;
+	int _goal_map_x;
+	int _goal_map_y;
+	
+	int _curr_cell_x;
+	int _curr_cell_y;
 	int _height;
 	int _width;
 	float _resolution;
@@ -48,11 +52,11 @@ class Planner{
 	void currentPosition(const ros::TimerEvent& e);
 	void readMap(const nav_msgs::OccupancyGridConstPtr& msg);
 	
-	bool rightCell(float x, float y);
-	void coordinateConvertToCell(float x, float y);
-	void cellConvertToCoordinate(float x, float y);
+	bool rightCell(int x, int y);
+	int worldToMap(int w_coor);
+	void mapToWorld(int m_x, int m_y);
 	
-	int calculateHScore(int _curr_cell_x, int _curr_cell_y, int _goal_cell_x, int _goal_cell_y);
+	float calculateHScore(int curr_cell_x, int curr_cell_y, int _goal_cell_x, int _goal_cell_y);
 	
 	std::vector <cell> path (int _curr_cell_x, int _curr_cell_y, int _goal_cell_x, int _goal_cell_y);
 	

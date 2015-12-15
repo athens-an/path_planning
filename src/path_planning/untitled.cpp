@@ -4,11 +4,11 @@
 Planner::Planner()
 {	
 	_service2 = _node.advertiseService("start", &Planner::start, this);
-	_service1 = _node.advertiseService("goal", &Planner::goal, this);
+	//~ _service1 = _node.advertiseService("goal", &Planner::goal, this);
 	_sub = _node.subscribe("map", 1000, &Planner::readMap, this);
 	
 	//transform a point once every second
-	_timer = _node.createTimer(ros::Duration(1.0), &Planner::currentPosition, this);
+	//~ _timer = _node.createTimer(ros::Duration(1.0), &Planner::currentPosition, this);
 }
 
 bool Planner::start(path_planning::startRequest &req, path_planning::startResponse &res)
@@ -20,65 +20,99 @@ bool Planner::start(path_planning::startRequest &req, path_planning::startRespon
 
 void Planner::readMap(const nav_msgs::OccupancyGridConstPtr& msg)
 {
-	_height = msg->info.height;
-	_width = msg->info.width;
-	_resolution = msg->info.resolution;
+	_height = 10;
+	_width = 10;
+	_resolution = 0.3;
 	_map_size = _height * _width;
 	
-	_index = new int[_map_size];
-	for (unsigned int ii = 0; ii <= _map_size; ii++) 
+	//~ _index = new int[_map_size];
+	//~ for (unsigned int ii = 0; ii <= _map_size; ii++) 
+	//~ {
+		//~ _index[ii] = msg->data[ii];
+	//~ }
+	
+	std::vector <cell> best_path;
+	_test = new float *[10];
+	for (unsigned int ii = 0; ii < 10; ii ++)
 	{
-		_index[ii] = msg->data[ii];
+		_test[ii] = new float [10];
+		for (unsigned int jj = 0; jj < 10; jj ++)
+		{
+			if ((ii == 1 && jj == 0) || (ii == 1 && jj == 3) || (ii == 3 && jj == 1) || (ii == 3 && jj == 2) || (ii == 3 && jj == 4))
+			{
+				_test[ii][jj] = 100;
+			}
+			else if ((ii == 0 && jj == 2) || (ii == 2 && jj == 4) || (ii == 4 && jj == 2))
+			{
+				_test[ii][jj] = -1;
+			}
+			else
+			{
+				_test[ii][jj] = 0;
+			}
+		}
+	}
+
+	_curr_cell_x = 0;
+	_curr_cell_y = 0;
+	_goal_cell_x = 2;
+	_goal_cell_y = 2;
+	
+	_goal_map_x = worldToMap(_goal_cell_x); // map(pixel)
+	_goal_map_y = worldToMap(_goal_cell_y);
+	
+	if (rightCell(_goal_map_x, _goal_map_y))
+	{
+		best_path = path(_curr_cell_x, _curr_cell_y, _goal_cell_x, _goal_cell_y);
 	}
 	
 	ROS_INFO_STREAM("height, width, resolution: " << _height << " " << _width << " " << _resolution);
 }
 
-void Planner::currentPosition(const ros::TimerEvent& e)
-{
-	try
-	{
-		tf::StampedTransform transform;
-		_listener.lookupTransform("map", "robot0", ros::Time(0), transform);
-		
-		_curr_cell_x = transform.getOrigin()[0];
-		_curr_cell_y = transform.getOrigin()[1];
-		
-		ROS_INFO_STREAM("CURRENT POSITION: " << _curr_cell_x << " " << _curr_cell_y << " " << 0.0);
-	}
-	catch(tf::TransformException& ex){
-		ROS_ERROR("%s",ex.what());
-        ros::Duration(1.0).sleep();
-	}
-}
+//~ void Planner::currentPosition(const ros::TimerEvent& e)
+//~ {
+	//~ try
+	//~ {
+		//~ tf::StampedTransform transform;
+		//~ _listener.lookupTransform("map", "robot0", ros::Time(0), transform);
+		//~ 
+		//~ _curr_cell_x = transform.getOrigin()[0];
+		//~ _curr_cell_y = transform.getOrigin()[1];
+		//~ 
+		//~ ROS_INFO_STREAM("CURRENT POSITION: " << _curr_cell_x << " " << _curr_cell_y << " " << 0.0);
+	//~ }
+	//~ catch(tf::TransformException& ex){
+		//~ ROS_ERROR("%s",ex.what());
+        //~ ros::Duration(1.0).sleep();
+	//~ }
+//~ }
 
-bool Planner::goal(path_planning::goalRequest &req, path_planning::goalResponse &res)
-{
-	ROS_INFO_STREAM("goal");
-	std::vector <cell> best_path;
-	
-	_goal_cell_x = req.goal_cell_x; // world
-	_goal_cell_y = req.goal_cell_y;
-	
-	_goal_map_x = worldToMap(_goal_cell_x); // map(pixel)
-	_goal_map_y = worldToMap(_goal_cell_y);
-	
-	ROS_INFO_STREAM("Pixel " << _goal_map_x << " " << _goal_map_y);
-	
-	//~ best_path = path(_curr_cell_x, _curr_cell_y, _goal_cell_x, _goal_cell_y);
-	if (rightCell(_goal_map_x, _goal_map_y))
-	{
-		best_path = path(_curr_cell_x, _curr_cell_y, _goal_cell_x, _goal_cell_y);
-		res.success = true;
-	}
-	else
-	{
-		ROS_INFO_STREAM("WRONG GOAL");
-		res.success = false;
-		return 1;
-	}
-	return true;
-}
+//~ bool Planner::goal(path_planning::goalRequest &req, path_planning::goalResponse &res)
+//~ {
+	//~ ROS_INFO_STREAM("goal");
+	//~ std::vector <cell> best_path;
+	//~ 
+	//~ _goal_cell_x = req.goal_cell_x; // world
+	//~ _goal_cell_y = req.goal_cell_y;
+	//~ 
+	//~ _goal_map_x = worldToMap(_goal_cell_x); // map(pixel)
+	//~ _goal_map_y = worldToMap(_goal_cell_y);
+	//~ 
+	//~ ROS_INFO_STREAM("Pixel " << _goal_map_x << " " << _goal_map_y);
+	//~ 
+	//~ if (rightCell(_goal_map_x, _goal_map_y))
+	//~ {
+		//~ best_path = path(_curr_cell_x, _curr_cell_y, _goal_cell_x, _goal_cell_y);
+		//~ res.success = true;
+	//~ }
+	//~ else
+	//~ {
+		//~ ROS_INFO_STREAM("WRONG GOAL");
+		//~ res.success = false;
+		//~ return 1;
+	//~ }
+	//~ return true;
+//~ }
 
 //elegxei an oi suntetagmenes tou keliou pou dothike anhkei ston xarth
 bool Planner::rightCell(int x, int y)
@@ -91,16 +125,12 @@ bool Planner::rightCell(int x, int y)
 	}
 	else
 	{
-		int b = x * _width + y;
-		//~ (2,2) = y * _width + 2
-		//~ (1,4) = y * _width + 4
-		//~ (4,1) = y * _width + 1
-		ROS_INFO_STREAM("index " << _index[b]);
-		if (_index[b] == 0)
+		ROS_INFO_STREAM("index " << _test[x][y]);
+		if (_test[x][y] == 0)
 		{
 			ROS_INFO_STREAM(" FREE ");			
 		}
-		else if (_index[b] == 100)
+		else if (_test[x][y] == 100)
 		{
 			ROS_INFO_STREAM(" OBSTACLE ");
 			valid = false;
@@ -141,7 +171,6 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 {
 	std::vector <cell> open_list;
 	std::vector <cell> closed_list;
-
 	
 	cell C;
 	cell N_C;
@@ -273,14 +302,14 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 		
 	}
 
-
 	
 	for (unsigned int ii = 0; ii < _width; ii ++) 
 	{
 		delete [] g_score[ii];
+		delete [] _test[ii];
 	}
 	delete [] g_score;
-	//~ delete [] _index;
+	delete [] _test;
 	
 }
 

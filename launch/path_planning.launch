@@ -4,7 +4,6 @@
 	
 	
 	<node pkg="path_planning" type="path_planning" name="path_planning" output="screen"/>
-	<node pkg="path_planning" type="map" name="map" output="screen"/>
 	
 	
 </launch>

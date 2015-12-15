@@ -11,8 +11,6 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   tf
   nav_msgs
-  nav_core
-  costmap_2d
   message_generation
 )
 
@@ -114,9 +112,7 @@ catkin_package(
 				 std_msgs 
 				 geometry_msgs 
 				 tf 
-				 nav_msgs 
-				 nav_core
-				 costmap_2d
+				 nav_msgs
 				 message_runtime 
 				 message_generation
   DEPENDS system_lib
