@@ -9,6 +9,7 @@ Planner::Planner()
 	
 	//transform a point once every second
 	_timer = _node.createTimer(ros::Duration(1.0), &Planner::currentPosition, this);
+	
 }
 
 bool Planner::start(path_planning::startRequest &req, path_planning::startResponse &res)
@@ -63,7 +64,7 @@ bool Planner::goal(path_planning::goalRequest &req, path_planning::goalResponse 
 	_goal_map_x = worldToMap(_goal_cell_x); // map(pixel)
 	_goal_map_y = worldToMap(_goal_cell_y);
 	
-	ROS_INFO_STREAM("Pixel " << _goal_map_x << " " << _goal_map_y);
+	//~ ROS_INFO_STREAM("Pixel " << _goal_map_x << " " << _goal_map_y);
 	
 	//~ best_path = path(_curr_cell_x, _curr_cell_y, _goal_cell_x, _goal_cell_y);
 	if (rightCell(_goal_map_x, _goal_map_y))
@@ -95,7 +96,7 @@ bool Planner::rightCell(int x, int y)
 		//~ (2,2) = y * _width + 2
 		//~ (1,4) = y * _width + 4
 		//~ (4,1) = y * _width + 1
-		ROS_INFO_STREAM("index " << _index[b]);
+		//~ ROS_INFO_STREAM("index " << _index[b]);
 		if (_index[b] == 0)
 		{
 			ROS_INFO_STREAM(" FREE ");			
@@ -151,7 +152,7 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 	C.y = _curr_cell_y;
 	open_list.push_back(C);
 	
-	int g_counter = 0;
+	int g_counter = 0; // counter gia ta g_score
 	int counter = 0;
 	float infinity = std::numeric_limits<float>::infinity();
 	
@@ -163,27 +164,48 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 		g_score[ii] = new float [_height];
 		for (unsigned int jj = 0; jj < _height; jj ++) 
 		{
-			//~ g_score[ii][jj] = _map_size * _map_size;
 			g_score[ii][jj] = _map_size + 1;
+		}
+	}
+	
+	float ** f_score;
+	f_score = new float *[_width];
+
+	for (unsigned int ii = 0; ii < _width; ii ++) 
+	{
+		f_score[ii] = new float [_height];
+		for (unsigned int jj = 0; jj < _height; jj ++) 
+		{
+			f_score[ii][jj] = infinity;
 		}
 	}
 	
 	g_score[_curr_cell_x][_curr_cell_y] = 0; //gia to keli sto opoio vriskomaste
 	float h_score = calculateHScore(_curr_cell_y, _curr_cell_y, _goal_cell_x, _goal_cell_y);
-	float f_score = g_score[_curr_cell_x][_curr_cell_y] + h_score;
+	f_score[_curr_cell_x][_curr_cell_y] = g_score[_curr_cell_x][_curr_cell_y] + h_score;
 	
-		
-	while (!open_list.empty() && (g_score[_goal_cell_x][_goal_cell_y] == _map_size + 1)) 
+	
+	while (!open_list.empty() && !(_curr_cell_x == _goal_cell_x && _curr_cell_y == _goal_cell_y))
 	{
 		std::vector <cell> neighbour_cell;
-
-		//krataei to twrino keli sto C gia na prostethei meta sthn closed list
-		if (counter != 0)
+		
+		open_list.erase(open_list.begin() + counter);
+		//~ ROS_INFO_STREAM(" open _ list _ new " << open_list.size());
+		closed_list.push_back(C);
+		
+		
+		for (unsigned int ii = 0; ii < closed_list.size(); ii ++)
 		{
-			C.x = _curr_cell_x;
-			C.y = _curr_cell_y;
-			ROS_INFO_STREAM("NAI");
+			ROS_INFO_STREAM(" closed list " << closed_list[ii].x << " " << closed_list[ii].y);
 		}
+		
+		for (unsigned int ii = 0; ii < open_list.size(); ii ++)
+		{
+			ROS_INFO_STREAM(" open list " << open_list[ii].x << " " << open_list[ii].y);
+		}
+		
+		float min = infinity;
+		int no_neigh_counter = 0; // an to keli den exei kanenan geitona eleuthero
 		
 		for (unsigned int ii = 1; ii <= 3; ii ++) 
 		{
@@ -193,7 +215,9 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 				int curr_map_x = worldToMap(_curr_cell_x + ii - 2);
 				int curr_map_y = worldToMap(_curr_cell_y + jj - 2);
 				
-				ROS_INFO_STREAM("neighbour (pixel) " << curr_map_x << " " << curr_map_y);
+				ROS_INFO_STREAM("neighbour " << _curr_cell_x + ii - 2 << " " << _curr_cell_y + jj - 2);
+				
+				//dexetai mono ta panw-katw deksia-aristera kelia
 				if ((_curr_cell_x + ii - 2 - _curr_cell_x) == -1 && (_curr_cell_y + jj - 2 - _curr_cell_y) == -1
 					|| (_curr_cell_x + ii - 2 - _curr_cell_x) == -1 && (_curr_cell_y + jj - 2 - _curr_cell_y) == 1
 					|| (_curr_cell_x + ii - 2 - _curr_cell_x) == 1 && (_curr_cell_y + jj - 2 - _curr_cell_y) == -1
@@ -201,86 +225,109 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 					|| (ii -2) == 0 && (jj - 2) == 0)
 				{
 					ROS_INFO_STREAM("No Neighbours");
+					no_neigh_counter ++ ;						
 				}
 				else
 				{
+					//elegxw an einai mesa sto xarti to trexon geitoniko keli
 					if ((curr_map_x >= 0 && curr_map_x < _width) && (curr_map_y >= 0 && curr_map_y < _height)) 
 					{
+						//elegxw an einai eleuthero h oxi
 						if (rightCell(curr_map_x, curr_map_y)) 
 						{
-							N_C.x = _curr_cell_x + ii - 2;
-							N_C.y = _curr_cell_y + jj - 2;
-							ROS_INFO_STREAM("Free neighbour " << N_C.x << " " << N_C.y);
-							neighbour_cell.push_back(N_C); //krataei se pinaka tous diathesimous geitones
+							//elegxw an to exei ksanaepiskeuthei
+							if (g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] == _map_size + 1) //dhladh den exei episkeuthei akoma
+							{
+								ROS_INFO_STREAM("Not visited yet");
+								g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] = g_counter + 1;
+								h_score = calculateHScore(_curr_cell_x + ii - 2, _curr_cell_y + jj - 2, _goal_cell_x, _goal_cell_y);
+								f_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] = g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] + h_score;
+								ROS_INFO_STREAM("Gscore new " << g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2]);
+								//pernaei sthn open list ta geitonika diathesima kelia
+								N_C.x = _curr_cell_x + ii - 2;
+								N_C.y = _curr_cell_y + jj - 2;
+								N_C.f_score = f_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2];
+								open_list.push_back(N_C);
+		
+								g_counter ++;
+				
+								ROS_INFO_STREAM("Fscore " << f_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2]);
+								
+								//upologizei to mikrotero f_score apo ta kelia pou exei episkeuthei
+								for (unsigned int zz = 0; zz < open_list.size(); zz ++)
+								{
+									if (min > open_list[zz].f_score)
+									{
+										min = open_list[zz].f_score;
+										_new_curr_cell_x = open_list[zz].x;
+										_new_curr_cell_y = open_list[zz].y;
+										counter = zz;
+									}
+								}
+				
+							}
+							else
+							{
+								ROS_INFO_STREAM("Has visited");
+								no_neigh_counter ++ ;
+							}
+						}
+						else
+						{
+							no_neigh_counter ++ ;
 						}
 					}
-			
+					else
+					{
+						no_neigh_counter ++ ;
+					}
 				}
 			}
 		}
-		
-		ROS_INFO_STREAM("size " << neighbour_cell.size());
-		
-		float min = infinity;
-		int list_counter = counter;
-		
-		for (unsigned int ii = 1; ii <= neighbour_cell.size(); ii ++)
+		if (no_neigh_counter == 9)
 		{
-			ROS_INFO_STREAM("cell " << neighbour_cell[ii - 1].x << " " << neighbour_cell[ii - 1].y);
-			
-			if (g_score[neighbour_cell[ii - 1].x][neighbour_cell[ii - 1].y] == _map_size + 1) //dhladh den exei episkeuthei akoma
+			//apo ta upoloipa kelia ths open list poio exei to mikrotero f_score
+			for (unsigned int ii = 0; ii < open_list.size(); ii ++)
 			{
-				ROS_INFO_STREAM("Not visited yet");
-				g_score[neighbour_cell[ii - 1].x][neighbour_cell[ii - 1].y] = g_counter + 1;
-				h_score = calculateHScore(neighbour_cell[ii- 1].x, neighbour_cell[ii - 1].y, _goal_cell_x, _goal_cell_y);
-				f_score = g_score[neighbour_cell[ii - 1].x][neighbour_cell[ii - 1].y] + h_score;
-				ROS_INFO_STREAM("Gscore new " << g_score[neighbour_cell[ii - 1].x][neighbour_cell[ii - 1].y]);
-
-				//pernaei sthn open list ta geitonika diathesima kelia se pixel
-				N_C.f_score = f_score;
-				open_list.push_back(N_C);
-				
-				g_counter ++;
-				
-				ROS_INFO_STREAM("Fscore " << f_score);
-				if (min > f_score)
+				if (min > open_list[ii].f_score)
 				{
-					min = f_score;
-					N_C.x = neighbour_cell[ii - 1].x;
-					N_C.y = neighbour_cell[ii - 1].y;
-					list_counter += ii;
-					ROS_INFO_STREAM("counter1 " << list_counter);
+					min = open_list[ii].f_score;
+					_new_curr_cell_x = open_list[ii].x;
+					_new_curr_cell_y = open_list[ii].y;
+					counter = ii;
 				}
-				
 			}
-			else
-			{
-				ROS_INFO_STREAM("Has visited");
-			}
+			ROS_INFO_STREAM("no_neigh_counter " << _new_curr_cell_x << " " << _new_curr_cell_y);
 		}
 		
-
 		ROS_INFO_STREAM("MIN " << min);
 		
-		_curr_cell_x = N_C.x;
-		_curr_cell_y = N_C.y;
-		ROS_INFO_STREAM("Current cell " << _curr_cell_x << " " << _curr_cell_y);
-		counter = counter + neighbour_cell.size();
-		ROS_INFO_STREAM("counter " << counter);
-			
-		open_list.erase(open_list.begin() + list_counter);
-		closed_list.push_back(C);
+		_curr_cell_x = _new_curr_cell_x;
+		_curr_cell_y = _new_curr_cell_y;
+		ROS_INFO_STREAM("Next cell " << _curr_cell_x << " " << _curr_cell_y);
+		C.x = _curr_cell_x;
+		C.y = _curr_cell_y;
 		
-	}
-
-
+		//~ ROS_INFO_STREAM("counter " << counter);
+		//~ ROS_INFO_STREAM(" open _ list " << open_list.size());
+		
+		//~ for (unsigned int ii = 0; ii < open_list.size(); ii ++)
+		//~ {
+			//~ ROS_INFO_STREAM(" anoixth " << open_list[ii].x << " " << open_list[ii].y);
+		//~ }
 	
+	}
+	
+	ROS_INFO_STREAM("END");
+		
 	for (unsigned int ii = 0; ii < _width; ii ++) 
 	{
 		delete [] g_score[ii];
+		delete [] f_score[ii];
 	}
 	delete [] g_score;
-	//~ delete [] _index;
+	delete [] f_score;
+	delete [] _index;
 	
 }
 
