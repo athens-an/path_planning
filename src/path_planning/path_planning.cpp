@@ -27,9 +27,30 @@ void Planner::readMap(const nav_msgs::OccupancyGridConstPtr& msg)
 	_map_size = _height * _width;
 	
 	_index = new int[_map_size];
+	
 	for (unsigned int ii = 0; ii <= _map_size; ii++) 
 	{
 		_index[ii] = msg->data[ii];
+	}
+	
+	g_score = new float *[_width];
+	for (unsigned int ii = 0; ii < _width; ii ++) 
+	{
+		g_score[ii] = new float [_height];
+		for (unsigned int jj = 0; jj < _height; jj ++) 
+		{
+			g_score[ii][jj] = _map_size + 1;
+		}
+	}
+	
+	f_score = new float *[_width];
+	for (unsigned int ii = 0; ii < _width; ii ++) 
+	{
+		f_score[ii] = new float [_height];
+		for (unsigned int jj = 0; jj < _height; jj ++) 
+		{
+			f_score[ii][jj] = std::numeric_limits<float>::infinity();
+		}
 	}
 	
 	ROS_INFO_STREAM("height, width, resolution: " << _height << " " << _width << " " << _resolution);
@@ -66,11 +87,12 @@ bool Planner::goal(path_planning::goalRequest &req, path_planning::goalResponse 
 	
 	//~ ROS_INFO_STREAM("Pixel " << _goal_map_x << " " << _goal_map_y);
 	
-	//~ best_path = path(_curr_cell_x, _curr_cell_y, _goal_cell_x, _goal_cell_y);
 	if (rightCell(_goal_map_x, _goal_map_y))
 	{
 		best_path = path(_curr_cell_x, _curr_cell_y, _goal_cell_x, _goal_cell_y);
+	
 		res.success = true;
+		
 	}
 	else
 	{
@@ -99,16 +121,16 @@ bool Planner::rightCell(int x, int y)
 		//~ ROS_INFO_STREAM("index " << _index[b]);
 		if (_index[b] == 0)
 		{
-			ROS_INFO_STREAM(" FREE ");			
+			//~ ROS_INFO_STREAM(" FREE ");			
 		}
 		else if (_index[b] == 100)
 		{
-			ROS_INFO_STREAM(" OBSTACLE ");
+			//~ ROS_INFO_STREAM(" OBSTACLE ");
 			valid = false;
 		}
 		else
 		{
-			ROS_INFO_STREAM(" UNKNOWN ");
+			//~ ROS_INFO_STREAM(" UNKNOWN ");
 			valid = false;
 		}
 	}
@@ -134,7 +156,7 @@ void Planner::mapToWorld(int m_x, int m_y)
 float Planner::calculateHScore (int curr_cell_x, int curr_cell_y, int _goal_cell_x, int _goal_cell_y) 
 {
 	float h_score = abs(curr_cell_x - _goal_cell_x) + abs(curr_cell_y - _goal_cell_y);
-	ROS_INFO_STREAM("Hscore " << h_score);
+	//~ ROS_INFO_STREAM("Hscore " << h_score);
 	return h_score;
 }
 
@@ -142,44 +164,22 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 {
 	std::vector <cell> open_list;
 	std::vector <cell> closed_list;
-
+	std::vector <cell> best_path;
 	
 	cell C;
 	cell N_C;
+	cell C_F;
 	
 	//prosthetw thn trexousa thesh (keli) sthn open list
 	C.x = _curr_cell_x;
 	C.y = _curr_cell_y;
 	open_list.push_back(C);
 	
+	int c_f_counter = 0; // gia na kserei apo poio keli egine h eksaplwsh
 	int g_counter = 0; // counter gia ta g_score
-	int counter = 0;
+	int counter = 0; // gia na kserei poio keli tha diagrapsei apo thn open list
 	float infinity = std::numeric_limits<float>::infinity();
-	
-	float ** g_score;
-	g_score = new float *[_width];
 
-	for (unsigned int ii = 0; ii < _width; ii ++) 
-	{
-		g_score[ii] = new float [_height];
-		for (unsigned int jj = 0; jj < _height; jj ++) 
-		{
-			g_score[ii][jj] = _map_size + 1;
-		}
-	}
-	
-	float ** f_score;
-	f_score = new float *[_width];
-
-	for (unsigned int ii = 0; ii < _width; ii ++) 
-	{
-		f_score[ii] = new float [_height];
-		for (unsigned int jj = 0; jj < _height; jj ++) 
-		{
-			f_score[ii][jj] = infinity;
-		}
-	}
-	
 	g_score[_curr_cell_x][_curr_cell_y] = 0; //gia to keli sto opoio vriskomaste
 	float h_score = calculateHScore(_curr_cell_y, _curr_cell_y, _goal_cell_x, _goal_cell_y);
 	f_score[_curr_cell_x][_curr_cell_y] = g_score[_curr_cell_x][_curr_cell_y] + h_score;
@@ -187,10 +187,10 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 	
 	while (!open_list.empty() && !(_curr_cell_x == _goal_cell_x && _curr_cell_y == _goal_cell_y))
 	{
-		std::vector <cell> neighbour_cell;
 		
+		std::vector <cell> neighbour_cell;
+
 		open_list.erase(open_list.begin() + counter);
-		//~ ROS_INFO_STREAM(" open _ list _ new " << open_list.size());
 		closed_list.push_back(C);
 		
 		
@@ -199,9 +199,9 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 			ROS_INFO_STREAM(" closed list " << closed_list[ii].x << " " << closed_list[ii].y);
 		}
 		
-		for (unsigned int ii = 0; ii < open_list.size(); ii ++)
+		for (unsigned int ii = 0; ii < _came_from.size(); ii ++)
 		{
-			ROS_INFO_STREAM(" open list " << open_list[ii].x << " " << open_list[ii].y);
+			ROS_INFO_STREAM(" came from list " << _came_from[ii].x << " " << _came_from[ii].y);
 		}
 		
 		float min = infinity;
@@ -229,7 +229,7 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 				}
 				else
 				{
-					//elegxw an einai mesa sto xarti to trexon geitoniko keli
+					//elegxw an einai mesa ston xarti to trexon geitoniko keli
 					if ((curr_map_x >= 0 && curr_map_x < _width) && (curr_map_y >= 0 && curr_map_y < _height)) 
 					{
 						//elegxw an einai eleuthero h oxi
@@ -239,7 +239,7 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 							if (g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] == _map_size + 1) //dhladh den exei episkeuthei akoma
 							{
 								ROS_INFO_STREAM("Not visited yet");
-								g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] = g_counter + 1;
+								g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] = g_score[_curr_cell_x][_curr_cell_y] + 1;
 								h_score = calculateHScore(_curr_cell_x + ii - 2, _curr_cell_y + jj - 2, _goal_cell_x, _goal_cell_y);
 								f_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] = g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] + h_score;
 								ROS_INFO_STREAM("Gscore new " << g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2]);
@@ -247,9 +247,11 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 								N_C.x = _curr_cell_x + ii - 2;
 								N_C.y = _curr_cell_y + jj - 2;
 								N_C.f_score = f_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2];
+								N_C.cf_x = _curr_cell_x;
+								N_C.cf_y = _curr_cell_y;
+								N_C.counter = c_f_counter;
 								open_list.push_back(N_C);
 		
-								g_counter ++;
 				
 								ROS_INFO_STREAM("Fscore " << f_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2]);
 								
@@ -268,6 +270,20 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 							}
 							else
 							{
+								for (unsigned int zz = 0; zz < open_list.size(); zz ++)
+								{
+									if (_curr_cell_x + ii - 2 == open_list[zz].x && _curr_cell_y + jj - 2 == open_list[zz].y)
+									{
+										if (g_score[_curr_cell_x][_curr_cell_y] + 1 < g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2])
+										{
+											g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] = g_score[_curr_cell_x][_curr_cell_y] + 1;
+											f_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] = g_score[_curr_cell_x + ii - 2][_curr_cell_y + jj - 2] + h_score;
+											C.cf_x = _curr_cell_x;
+											C.cf_y = _curr_cell_y;
+											C.counter = c_f_counter;
+										}
+									}
+								}
 								ROS_INFO_STREAM("Has visited");
 								no_neigh_counter ++ ;
 							}
@@ -284,6 +300,8 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 				}
 			}
 		}
+		
+		//ean den exei kanenan diathesimo geitona to keli sto opoio vriskomaste
 		if (no_neigh_counter == 9)
 		{
 			//apo ta upoloipa kelia ths open list poio exei to mikrotero f_score
@@ -307,19 +325,23 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 		ROS_INFO_STREAM("Next cell " << _curr_cell_x << " " << _curr_cell_y);
 		C.x = _curr_cell_x;
 		C.y = _curr_cell_y;
-		
-		//~ ROS_INFO_STREAM("counter " << counter);
-		//~ ROS_INFO_STREAM(" open _ list " << open_list.size());
-		
-		//~ for (unsigned int ii = 0; ii < open_list.size(); ii ++)
-		//~ {
-			//~ ROS_INFO_STREAM(" anoixth " << open_list[ii].x << " " << open_list[ii].y);
-		//~ }
+
+		C_F.x = open_list[counter].cf_x;
+		C_F.y = open_list[counter].cf_y;
+		C_F.counter = open_list[counter].counter;
+		c_f_counter ++ ;
+		_came_from.push_back(C_F);
 	
 	}
 	
 	ROS_INFO_STREAM("END");
-		
+	C.x = _goal_cell_x;
+	C.y = _goal_cell_y;
+	C.counter = _came_from.size();
+	closed_list.push_back(C);
+	_came_from.push_back(C);
+	best_path = reconstructPath(_came_from, _goal_cell_x, _goal_cell_y);
+	
 	for (unsigned int ii = 0; ii < _width; ii ++) 
 	{
 		delete [] g_score[ii];
@@ -329,7 +351,39 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 	delete [] f_score;
 	delete [] _index;
 	
+	return best_path;
 }
 
+std::vector <cell> Planner::reconstructPath (const std::vector <cell>& _came_from, int _goal_cell_x, int _goal_cell_y)
+{
+	std::vector <cell> best_path;
+	int count = _came_from.size();
+	cell B;
 
-
+	ROS_INFO_STREAM("size of vector " << count);
+	int current_x = _goal_cell_x;
+	int current_y = _goal_cell_y;
+	ROS_INFO_STREAM("current " << _curr_cell_x << " " << _curr_cell_y);
+	
+	
+	while (!(current_x == _curr_cell_x && current_y == _curr_cell_y))
+	{
+		current_x = _came_from[count - 1].x;
+		current_y = _came_from[count - 1].y;
+		count = _came_from[count - 1].counter;
+		
+		ROS_INFO_STREAM("reConstructorPath " << current_x << " " << current_y);
+		B.x = current_x;
+		B.y = current_y;
+		best_path.push_back(B);
+		ROS_INFO_STREAM("count " << count);
+		
+	}
+	
+	for (unsigned int ii = 0; ii < best_path.size(); ii ++)
+	{
+		ROS_INFO_STREAM("best_path " << best_path[ii].x << " " << best_path[ii].y);
+	}
+	
+	return best_path;
+}

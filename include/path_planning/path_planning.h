@@ -12,12 +12,17 @@
 #include "nav_msgs/GetMap.h"
 #include "path_planning/start.h"
 #include "path_planning/goal.h"
+#include <visualization_msgs/Marker.h>
 
 
 struct cell {
 	int x;
 	int y;
 	float f_score;
+	int cf_x;
+	int cf_y;
+	int counter;
+	
 };
 
 
@@ -31,6 +36,8 @@ class Planner{
 	tf::TransformListener _listener;
 	
 	int * _index;
+	float ** g_score;
+	float ** f_score;
 	
 	int _goal_cell_x;
 	int _goal_cell_y;
@@ -45,6 +52,8 @@ class Planner{
 	int _width;
 	float _resolution;
 	int _map_size;
+	
+	std::vector <cell> _came_from;
 	
 	public:
 	
@@ -61,6 +70,7 @@ class Planner{
 	float calculateHScore(int curr_cell_x, int curr_cell_y, int _goal_cell_x, int _goal_cell_y);
 	
 	std::vector <cell> path (int _curr_cell_x, int _curr_cell_y, int _goal_cell_x, int _goal_cell_y);
+	std::vector <cell> reconstructPath (const std::vector <cell>& _came_from, int _goal_cell_x, int _goal_cell_y);
 	
 	
 };
