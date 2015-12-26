@@ -9,11 +9,9 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "tf/tf.h"
 #include "tf/transform_listener.h"
-#include <tf/transform_datatypes.h>
 
 #include "nav_msgs/GetMap.h"
 #include "nav_msgs/Path.h"
-#include "nav_msgs/GetPlan.h"
 #include "path_planning/start.h"
 #include "path_planning/goal.h"
 #include <visualization_msgs/Marker.h>
@@ -77,8 +75,6 @@ class Planner{
 	
 	std::vector <cell> path (int _curr_cell_x, int _curr_cell_y, int _goal_cell_x, int _goal_cell_y);
 	std::vector <cell> reconstructPath (const std::vector <cell>& _came_from, int _goal_cell_x, int _goal_cell_y);
-	
-	void visual(int _curr_cell_x, int _curr_cell_y, int _goal_cell_x, int _goal_cell_y);
 	
 	
 };

@@ -189,12 +189,7 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 	std::vector <cell> open_list;
 	std::vector <cell> closed_list;
 	std::vector <cell> best_path;
-	std::vector <cell> neighbour_cell;
 	
-	open_list.clear();
-	closed_list.clear();
-	best_path.clear();
-	neighbour_cell.clear();
 	
 	cell C;
 	cell N_C;
@@ -239,8 +234,11 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 	while (!open_list.empty() && !(_curr_cell_x == _goal_cell_x && _curr_cell_y == _goal_cell_y))
 	{		
 
+		std::vector <cell> neighbour_cell;
+		
 		open_list.erase(open_list.begin() + counter);
 		closed_list.push_back(C);
+		_came_from.push_back(C);
 		
 		
 		//~ for (unsigned int ii = 0; ii < closed_list.size(); ii ++)
