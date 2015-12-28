@@ -49,8 +49,6 @@ class Planner{
 	
 	int _curr_cell_x;
 	int _curr_cell_y;
-	int _new_curr_cell_x;
-	int _new_curr_cell_y;
 	int _height;
 	int _width;
 	float _resolution;
