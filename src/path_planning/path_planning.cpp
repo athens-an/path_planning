@@ -34,7 +34,25 @@ void Planner::readMap(const nav_msgs::OccupancyGridConstPtr& msg)
 		_index[ii] = msg->data[ii];
 	}
 	
+		g_score = new float *[_width];
+	for (unsigned int ii = 0; ii < _width; ii ++) 
+	{
+		g_score[ii] = new float [_height];
+		for (unsigned int jj = 0; jj < _height; jj ++) 
+		{
+			g_score[ii][jj] = _map_size + 1;
+		}
+	}
 	
+	f_score = new float *[_width];
+	for (unsigned int ii = 0; ii < _width; ii ++) 
+	{
+		f_score[ii] = new float [_height];
+		for (unsigned int jj = 0; jj < _height; jj ++) 
+		{
+			f_score[ii][jj] = std::numeric_limits<float>::infinity();
+		}
+	}
 	
 	ROS_INFO_STREAM("height, width, resolution: " << _height << " " << _width << " " << _resolution);
 }
@@ -78,19 +96,12 @@ bool Planner::goal(path_planning::goalRequest &req, path_planning::goalResponse 
 	
 		ROS_INFO_STREAM("Got a start: " << _curr_cell_x << " " << _curr_cell_y << "  and a goal: " << _goal_cell_x << " " << _goal_cell_y);
 	
-
-		geometry_msgs::PoseStamped start;
-		geometry_msgs::PoseStamped goal;
 		nav_msgs::Path plan;
 		geometry_msgs::PoseStamped pose;
 
 
 		plan.header.frame_id = "/map";
 		
-		start.pose.position.x = _curr_cell_x;
-		start.pose.position.y = _curr_cell_y;
-		goal.pose.position.x = _goal_cell_x;
-		goal.pose.position.y = _goal_cell_y;
 		
 		for (unsigned int ii = 0; ii < best_path.size(); ii ++)
 		{
@@ -110,10 +121,7 @@ bool Planner::goal(path_planning::goalRequest &req, path_planning::goalResponse 
 			
 		}
 		_pub.publish(plan);
-		for (unsigned int ii = 0; ii < plan.poses.size(); ii ++)
-		{
-			ROS_INFO_STREAM("plan " << plan.poses[ii]);
-		}
+
 	
 		res.success = true;
 		
@@ -205,26 +213,6 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 	int counter = 0; // gia na kserei poio keli tha diagrapsei apo thn open list
 	float infinity = std::numeric_limits<float>::infinity();
 	
-	
-	g_score = new float *[_width];
-	for (unsigned int ii = 0; ii < _width; ii ++) 
-	{
-		g_score[ii] = new float [_height];
-		for (unsigned int jj = 0; jj < _height; jj ++) 
-		{
-			g_score[ii][jj] = _map_size + 1;
-		}
-	}
-	
-	f_score = new float *[_width];
-	for (unsigned int ii = 0; ii < _width; ii ++) 
-	{
-		f_score[ii] = new float [_height];
-		for (unsigned int jj = 0; jj < _height; jj ++) 
-		{
-			f_score[ii][jj] = std::numeric_limits<float>::infinity();
-		}
-	}
 	
 	g_score[_curr_cell_x][_curr_cell_y] = 0; //gia to keli sto opoio vriskomaste
 	float h_score = calculateHScore(_curr_cell_y, _curr_cell_y, _goal_cell_x, _goal_cell_y);
@@ -395,7 +383,7 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 	}
 	delete [] g_score;
 	delete [] f_score;
-	//~ delete [] _index;
+	delete [] _index;
 	
 	return best_path;
 }
