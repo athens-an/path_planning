@@ -60,6 +60,7 @@ class Planner{
 	public:
 	
 	Planner();
+	bool random();
 	bool goal(path_planning::goalRequest &req, path_planning::goalResponse &res);
 	bool start(path_planning::startRequest &req, path_planning::startResponse &res);
 	void currentPosition(const ros::TimerEvent& e);

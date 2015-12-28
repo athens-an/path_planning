@@ -34,25 +34,7 @@ void Planner::readMap(const nav_msgs::OccupancyGridConstPtr& msg)
 		_index[ii] = msg->data[ii];
 	}
 	
-		g_score = new float *[_width];
-	for (unsigned int ii = 0; ii < _width; ii ++) 
-	{
-		g_score[ii] = new float [_height];
-		for (unsigned int jj = 0; jj < _height; jj ++) 
-		{
-			g_score[ii][jj] = _map_size + 1;
-		}
-	}
 	
-	f_score = new float *[_width];
-	for (unsigned int ii = 0; ii < _width; ii ++) 
-	{
-		f_score[ii] = new float [_height];
-		for (unsigned int jj = 0; jj < _height; jj ++) 
-		{
-			f_score[ii][jj] = std::numeric_limits<float>::infinity();
-		}
-	}
 	
 	ROS_INFO_STREAM("height, width, resolution: " << _height << " " << _width << " " << _resolution);
 }
@@ -81,19 +63,83 @@ void Planner::currentPosition(const ros::TimerEvent& e)
 bool Planner::goal(path_planning::goalRequest &req, path_planning::goalResponse &res)
 {
 	ROS_INFO_STREAM("goal");
+	//~ std::vector <cell> best_path;
+	
+	//~ _goal_cell_x = req.goal_cell_x; // world
+	//~ _goal_cell_y = req.goal_cell_y;
+	
+	if (random())
+	{
+		res.success = true;
+	}
+	
+	//~ _goal_map_x = worldToMap(_goal_cell_x); // map(pixel)
+	//~ _goal_map_y = worldToMap(_goal_cell_y);
+	
+	//~ ROS_INFO_STREAM("Pixel " << _goal_map_x << " " << _goal_map_y);
+	//~ if (rightCell(_goal_map_x, _goal_map_y))
+	//~ {
+		//~ best_path = path(_curr_cell_x, _curr_cell_y, _goal_cell_x, _goal_cell_y);
+	
+		//~ ROS_INFO_STREAM("Got a start: " << _curr_cell_x << " " << _curr_cell_y << "  and a goal: " << _goal_cell_x << " " << _goal_cell_y);
+		
+		//~ nav_msgs::Path plan;
+		//~ geometry_msgs::PoseStamped pose;
+
+
+		//~ plan.header.frame_id = "/map";
+		
+		
+		//~ for (unsigned int ii = 0; ii < best_path.size(); ii ++)
+		//~ {
+
+			//~ // geometry_msgs/PoseStamped[] -> geometry_msgs/Pose -> geometry_msgs/Point
+			//~ pose.pose.position.x = best_path[ii].x;
+			//~ pose.pose.position.y = best_path[ii].y;
+			//~ pose.pose.position.z = 0.0;
+
+			//~ // geometry_msgs/PoseStamped[] -> geometry_msgs/Pose -> geometry_msgs/Quaternion
+			//~ pose.pose.orientation.x = 0.0;
+			//~ pose.pose.orientation.y = 0.0;
+			//~ pose.pose.orientation.z = 0.0;
+			//~ pose.pose.orientation.w = 1.0;
+
+			//~ plan.poses.push_back(pose);
+			
+		//~ }
+		//~ _pub.publish(plan);
+		
+		
+		//~ res.success = true;
+		
+	//~ }
+	else
+	{
+		ROS_INFO_STREAM("WRONG GOAL");
+		res.success = false;
+		return 1;
+	}
+	return true;
+}
+
+
+bool Planner::random()
+{
 	std::vector <cell> best_path;
+	best_path.clear();
 	
-	_goal_cell_x = req.goal_cell_x; // world
-	_goal_cell_y = req.goal_cell_y;
+	int w = _width * _resolution;
+	int h = _height * _resolution;
+	_goal_cell_x = rand() % w;
+	_goal_cell_y = rand() % h;
 	
+	ROS_INFO_STREAM("Goal cell " << _goal_cell_x << " " << _goal_cell_y);
 	_goal_map_x = worldToMap(_goal_cell_x); // map(pixel)
 	_goal_map_y = worldToMap(_goal_cell_y);
 	
-	//~ ROS_INFO_STREAM("Pixel " << _goal_map_x << " " << _goal_map_y);
 	if (rightCell(_goal_map_x, _goal_map_y))
 	{
 		best_path = path(_curr_cell_x, _curr_cell_y, _goal_cell_x, _goal_cell_y);
-	
 		ROS_INFO_STREAM("Got a start: " << _curr_cell_x << " " << _curr_cell_y << "  and a goal: " << _goal_cell_x << " " << _goal_cell_y);
 		
 		nav_msgs::Path plan;
@@ -122,18 +168,16 @@ bool Planner::goal(path_planning::goalRequest &req, path_planning::goalResponse 
 		}
 		_pub.publish(plan);
 		
-		
-		res.success = true;
-		
+		return true;
 	}
 	else
 	{
-		ROS_INFO_STREAM("WRONG GOAL");
-		res.success = false;
-		return 1;
+		return false;
 	}
-	return true;
 }
+
+
+
 
 //elegxei an oi suntetagmenes tou keliou pou dothike anhkei ston xarth
 bool Planner::rightCell(int x, int y)
@@ -198,10 +242,34 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 	std::vector <cell> closed_list;
 	std::vector <cell> best_path;
 
+	open_list.clear();
+	closed_list.clear();
+	best_path.clear();
+	_came_from.clear();
 	
 	cell C;
 	cell N_C;
 	cell C_F;
+	
+	g_score = new float *[_width];
+	for (unsigned int ii = 0; ii < _width; ii ++) 
+	{
+		g_score[ii] = new float [_height];
+		for (unsigned int jj = 0; jj < _height; jj ++) 
+		{
+			g_score[ii][jj] = _map_size + 1;
+		}
+	}
+	
+	f_score = new float *[_width];
+	for (unsigned int ii = 0; ii < _width; ii ++) 
+	{
+		f_score[ii] = new float [_height];
+		for (unsigned int jj = 0; jj < _height; jj ++) 
+		{
+			f_score[ii][jj] = std::numeric_limits<float>::infinity();
+		}
+	}
 	
 	//prosthetw thn trexousa thesh (keli) sthn open list
 	C.x = _curr_cell_x;
@@ -223,6 +291,7 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 	{		
 
 		std::vector <cell> neighbour_cell;
+		neighbour_cell.clear();
 		
 		open_list.erase(open_list.begin() + counter);
 		closed_list.push_back(C);
@@ -352,7 +421,7 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int _goal_
 	}
 	delete [] g_score;
 	delete [] f_score;
-	delete [] _index;
+	//~ delete [] _index;
 	
 	return best_path;
 }
