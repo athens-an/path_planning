@@ -1,3 +1,4 @@
-
+#int64 goal_cell_x
+#int64 goal_cell_y
 ---
 bool success
