@@ -70,7 +70,7 @@ class Planner{
 	int worldToMap(int w_coor);
 	void mapToWorld(int m_x, int m_y);
 	
-	float calculateHScore(int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y);
+	int calculateHScore(int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y);
 	
 	std::vector <cell> path (int _curr_cell_x, int _curr_cell_y, int goal_map_x, int goal_map_y);
 	std::vector <cell> reconstructPath (const std::vector <cell>& _came_from, int goal_map_x, int goal_map_y);

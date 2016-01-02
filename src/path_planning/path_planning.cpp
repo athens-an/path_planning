@@ -78,7 +78,7 @@ bool Planner::goal(path_planning::goalRequest &req, path_planning::goalResponse 
 	//~ ROS_INFO_STREAM("Pixel " << _goal_map_x << " " << _goal_map_y);
 	//~ if (rightCell(_goal_map_x, _goal_map_y))
 	//~ {
-		//~ best_path = path(_curr_cell_x, _curr_cell_y, _goal_cell_x, _goal_cell_y);
+		//~ best_path = path(_curr_cell_x, _curr_cell_y, _goal_map_x, _goal_map_y);
 	
 		//~ ROS_INFO_STREAM("Got a start: " << _curr_cell_x << " " << _curr_cell_y << "  and a goal: " << _goal_cell_x << " " << _goal_cell_y);
 		
@@ -93,8 +93,8 @@ bool Planner::goal(path_planning::goalRequest &req, path_planning::goalResponse 
 		//~ {
 
 			//~ // geometry_msgs/PoseStamped[] -> geometry_msgs/Pose -> geometry_msgs/Point
-			//~ pose.pose.position.x = best_path[ii].x;
-			//~ pose.pose.position.y = best_path[ii].y;
+			//~ pose.pose.position.x = best_path[ii].x * _resolution;
+			//~ pose.pose.position.y = best_path[ii].y * _resolution;
 			//~ pose.pose.position.z = 0.0;
 
 			//~ // geometry_msgs/PoseStamped[] -> geometry_msgs/Pose -> geometry_msgs/Quaternion
@@ -112,12 +112,12 @@ bool Planner::goal(path_planning::goalRequest &req, path_planning::goalResponse 
 		//~ res.success = true;
 		
 	//~ }
-	//~ else
-	//~ {
-		//~ ROS_INFO_STREAM("WRONG GOAL");
-		//~ res.success = false;
-		//~ return 1;
-	//~ }
+	else
+	{
+		ROS_INFO_STREAM("WRONG GOAL");
+		res.success = false;
+		return 1;
+	}
 	return true;
 }
 
@@ -232,9 +232,9 @@ void Planner::mapToWorld(int m_x, int m_y)
 }
 
 //upologizetai to h(x) to opoio einai iso me thn apostash tou trexontos keliou apo ton teliko stoxo (gia oxi diagwnia)
-float Planner::calculateHScore (int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y) 
+int Planner::calculateHScore (int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y) 
 {
-	float h_score = abs(curr_map_x - goal_map_x) + abs(curr_map_y - goal_map_y);
+	int h_score = abs(curr_map_x - goal_map_x) + abs(curr_map_y - goal_map_y);
 	//~ ROS_INFO_STREAM("Hscore " << h_score);
 	return h_score;
 }
@@ -251,9 +251,9 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int goal_m
 	best_path.clear();
 	_came_from.clear();
 	
-	cell C;
-	cell N_C;
-	cell C_F;
+	cell C; 
+	cell N_C; 
+	cell C_F; 
 	
 	g_score = new float *[_width];
 	for (unsigned int ii = 0; ii < _width; ii ++) 
@@ -290,7 +290,7 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int goal_m
 	
 	
 	g_score[curr_map_x][curr_map_y] = 0; //gia to keli sto opoio vriskomaste
-	float h_score = calculateHScore(curr_map_x, curr_map_y, goal_map_x, goal_map_y);
+	int h_score = calculateHScore(curr_map_x, curr_map_y, goal_map_x, goal_map_y);
 	f_score[curr_map_x][curr_map_y] = g_score[curr_map_x][curr_map_y] + h_score;
 	
 	while (!open_list.empty() && !(curr_map_x == goal_map_x && curr_map_y == goal_map_y))
@@ -323,9 +323,10 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int goal_m
 				int mx = curr_map_x + ii - 2; //h x suntetagmenh tou geitonikou
 				int my = curr_map_y + jj - 2; //h y suntetagmenh tou geitonikou
 				
+				
 				//~ ROS_INFO_STREAM("neighbour " << mx << " " << my);
 				
-				//elegxei touw geitones
+				//elegxei tous geitones
 				if ((ii - 2) == 0 && (jj - 2) == 0)
 				{
 					//~ ROS_INFO_STREAM("No Neighbours");
@@ -391,10 +392,10 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, int goal_m
 									{
 										g_score[mx][my] = new_g;
 										f_score[mx][my] = g_score[mx][my] + calculateHScore(mx, my, goal_map_x, goal_map_y);
-										C.f_score = f_score[mx][my];
-										C.cf_x = curr_map_x;
-										C.cf_y = curr_map_y;
-										C.counter = c_f_counter;
+										open_list[zz].f_score = f_score[mx][my];
+										open_list[zz].cf_x = curr_map_x;
+										open_list[zz].cf_y = curr_map_y;
+										open_list[zz].counter = c_f_counter;
 									}
 								}
 							}
@@ -472,7 +473,7 @@ std::vector <cell> Planner::reconstructPath (const std::vector <cell>& _came_fro
 		current_y = _came_from[count - 1].y;
 		count = _came_from[count - 1].counter;
 		
-		ROS_INFO_STREAM("reConstructorPath " << current_x << " " << current_y);
+		//~ ROS_INFO_STREAM("reConstructorPath " << current_x << " " << current_y);
 		B.x = current_x;
 		B.y = current_y;
 		best_path.push_back(B);
