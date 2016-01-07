@@ -36,6 +36,7 @@ class Planner{
 	ros::ServiceServer _service2;
 	ros::Timer _timer;
 	ros::Publisher _pub;
+	ros::Publisher _marker_pub;
 	tf::TransformListener _listener;
 	
 	int * _index;
@@ -53,6 +54,9 @@ class Planner{
 	int _width;
 	float _resolution;
 	int _map_size;
+	
+	int _new_x;
+	int _new_y;
 	
 	std::vector <cell> _came_from;
 	
@@ -75,6 +79,8 @@ class Planner{
 	std::vector <cell> path (int _curr_cell_x, int _curr_cell_y, int goal_map_x, int goal_map_y);
 	std::vector <cell> reconstructPath (const std::vector <cell>& _came_from, int goal_map_x, int goal_map_y);
 	
+	void subobjective (int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y);
+	void visual(const std::vector <cell>& best_path);
 	
 };
 
