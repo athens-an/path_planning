@@ -5,17 +5,20 @@
 #include <vector>
 #include <limits>
 
-#include "ros/ros.h"
-#include "geometry_msgs/PoseStamped.h"
-#include "tf/tf.h"
-#include "tf/transform_listener.h"
+#include <ros/ros.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Twist.h>
 
-#include "nav_msgs/GetMap.h"
-#include "nav_msgs/Path.h"
+#include <tf/tf.h>
+#include <tf/transform_listener.h>
+#include <nav_msgs/GetMap.h>
+#include <nav_msgs/Path.h>
+
+#include <visualization_msgs/Marker.h>
+#include <sensor_msgs/Range.h>
+
 #include "path_planning/start.h"
 #include "path_planning/goal.h"
-#include <visualization_msgs/Marker.h>
-
 
 struct cell {
 	int x;
@@ -35,8 +38,9 @@ class Planner{
 	ros::ServiceServer _service1;
 	ros::ServiceServer _service2;
 	ros::Timer _timer;
-	ros::Publisher _pub;
+	ros::Publisher _path_pub;
 	ros::Publisher _marker_pub;
+	ros::Publisher _vel_pub;
 	tf::TransformListener _listener;
 	
 	int * _index;
@@ -54,9 +58,6 @@ class Planner{
 	int _width;
 	float _resolution;
 	int _map_size;
-	
-	int _new_x;
-	int _new_y;
 	
 	std::vector <cell> _came_from;
 	
@@ -79,8 +80,7 @@ class Planner{
 	std::vector <cell> path (int _curr_cell_x, int _curr_cell_y, int goal_map_x, int goal_map_y);
 	std::vector <cell> reconstructPath (const std::vector <cell>& _came_from, int goal_map_x, int goal_map_y);
 	
-	void subobjective (int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y);
-	void visual(const std::vector <cell>& best_path);
+	void visual(const std::vector <cell>& subobjective_path);
 	
 };
 
