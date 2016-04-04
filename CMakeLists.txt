@@ -130,20 +130,43 @@ include_directories( include
 )
 
 ## Declare a C++ library
-# add_library(path_planning
-#   src/${PROJECT_NAME}/path_planning.cpp
-# )
+add_library(path_planning_lib
+   src/path_planning/path_planning.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(path_planning ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(path_planning_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+
+add_library(robot_perception_lib
+   src/path_planning/robot_perception.cpp
+)
+add_dependencies(robot_perception_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+
+add_library(graph_lib
+   src/path_planning/graph.cpp
+)
+add_dependencies(graph_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+
+add_library(node_lib
+   src/path_planning/node.cpp
+)
+add_dependencies(node_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 
 ## Declare a C++ executable
- add_executable(path_planning src/path_planning/main.cpp src/path_planning/path_planning.cpp )
- target_link_libraries(path_planning ${catkin_LIBRARIES})
+ add_executable(path_planning src/path_planning/main.cpp)
+ target_link_libraries(path_planning 
+						path_planning_lib
+						graph_lib
+						node_lib
+						robot_perception_lib
+						${catkin_LIBRARIES})
  add_dependencies(path_planning path_planning_generate_messages_cpp)
- 
  
 
 ## Add cmake target dependencies of the executable

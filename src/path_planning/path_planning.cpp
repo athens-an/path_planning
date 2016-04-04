@@ -2,17 +2,14 @@
 
 
 Planner::Planner()
-{	
+{
 	_service2 = _node.advertiseService("start", &Planner::start, this);
 	_service1 = _node.advertiseService("goal", &Planner::goal, this);
-	_sub = _node.subscribe("/map", 1000, &Planner::readMap, this);
+	
 	_path_pub = _node.advertise<nav_msgs::Path>("/move_base_simple/path", 10);
 	_marker_pub = _node.advertise<visualization_msgs::Marker>("visualization_marker", 1);
 	_vel_pub = _node.advertise<geometry_msgs::Twist>("/robot0/cmd_vel", 1);
-	
-	//transform a point once every second
-	_timer = _node.createTimer(ros::Duration(1.0), &Planner::currentPosition, this);
-	
+		
 }
 
 bool Planner::start(path_planning::startRequest &req, 
@@ -23,60 +20,77 @@ bool Planner::start(path_planning::startRequest &req,
 	return true;
 }
 
-void Planner::readMap(const nav_msgs::OccupancyGridConstPtr& msg)
-{
-	_height = msg->info.height;
-	_width = msg->info.width;
-	_resolution = msg->info.resolution;
-	_map_size = _height * _width;
-	
-	_index = new int[_map_size];
-	
-	for (unsigned int ii = 0; ii <= _map_size; ii++) 
-	{
-		_index[ii] = msg->data[ii];
-	}
-	
-	ROS_INFO_STREAM("height, width, resolution: " 
-					<< _height << " " << _width << " " << _resolution);
-}
-
-void Planner::currentPosition(const ros::TimerEvent& e)
-{
-	try
-	{
-		tf::StampedTransform transform;
-		_listener.lookupTransform("/map", "robot0", ros::Time(0), transform);
-		
-		_curr_cell_x = transform.getOrigin()[0];
-		_curr_cell_y = transform.getOrigin()[1];
-		
-		ROS_INFO_STREAM("CURRENT POSITION: " << _curr_cell_x << " " 
-							<< _curr_cell_y << " " << 0.0);
-	}
-	catch(tf::TransformException& ex){
-		ROS_ERROR("%s",ex.what());
-        ros::Duration(1.0).sleep();
-	}
-	
-}
 
 bool Planner::goal(path_planning::goalRequest &req, 
 					path_planning::goalResponse &res)
 {
-	ROS_INFO_STREAM("goal");
-
-	if (random())
+	//~ ROS_INFO_STREAM("goal");
+	//~ 
+	//~ if (random())
+	//~ {
+		//~ res.success = true;
+	//~ }
+	//~ 
+	//~ else
+	//~ {
+		//~ ROS_INFO_STREAM("WRONG GOAL");
+		//~ res.success = false;
+		//~ return 1;
+	//~ }
+ 
+	std::vector <cell> best_path;
+	best_path.clear();
+	
+	//~ _goal_cell_x = req.goal_cell_x;
+	//~ _goal_cell_y = req.goal_cell_y;
+	
+	int curr_map_x = robot_perception.worldToMap(robot_perception.currentXPosition());
+	int curr_map_y = robot_perception.worldToMap(robot_perception.currentYPosition());
+	int goal_map_x = robot_perception.worldToMap(robot_perception.goalXPosition());
+	int goal_map_y = robot_perception.worldToMap(robot_perception.goalYPosition());
+	
+	ROS_INFO_STREAM("GOAL X " << robot_perception.goalXPosition() << " GOAL Y " << robot_perception.goalYPosition());
+	//~ _goal_map_x = worldToMap(_goal_cell_x); // map(pixel)
+	//~ _goal_map_y = worldToMap(_goal_cell_y);
+	
+	if (robot_perception.rightCell(goal_map_x, goal_map_y))
 	{
+		best_path = path(curr_map_x, curr_map_y, goal_map_x, goal_map_y);
+		ROS_INFO_STREAM("Got a start: " << robot_perception.currentXPosition() << " " << robot_perception.currentYPosition() 
+							<< " and a goal: " << robot_perception.goalXPosition() << " " << robot_perception.goalYPosition());
+			
+		nav_msgs::Path plan;
+		geometry_msgs::PoseStamped pose;
+ 
+		plan.header.frame_id = "/map";
+				
+		for (unsigned int ii = 0; ii < best_path.size(); ii ++)
+		{
+
+			// geometry_msgs/PoseStamped[] -> geometry_msgs/Pose -> geometry_msgs/Point
+			pose.pose.position.x = best_path[ii].x * robot_perception.getMapResolution();
+			pose.pose.position.y = best_path[ii].y * robot_perception.getMapResolution();
+			pose.pose.position.z = 0.0;
+
+			//~ // geometry_msgs/PoseStamped[] -> geometry_msgs/Pose -> geometry_msgs/Quaternion
+			pose.pose.orientation.x = 0.0;
+			pose.pose.orientation.y = 0.0;
+			pose.pose.orientation.z = 0.0;
+			pose.pose.orientation.w = 1.0;
+
+			plan.poses.push_back(pose);
+				
+		}
+		_path_pub.publish(plan);
 		res.success = true;
 	}
-	
 	else
 	{
 		ROS_INFO_STREAM("WRONG GOAL");
 		res.success = false;
 		return 1;
 	}
+	
 	return true;
 }
 
@@ -85,30 +99,43 @@ bool Planner::random()
 	std::vector <cell> best_path;
 	best_path.clear();
 	
-	int w = _width * _resolution;
-	int h = _height * _resolution;
+	int w = robot_perception.getMapWidth() * robot_perception.getMapResolution();
+	int h = robot_perception.getMapHeight() * robot_perception.getMapResolution();
 	
-	_goal_cell_x = rand() % w;
-	_goal_cell_y = rand() % h;
+	int curr_map_x = robot_perception.worldToMap(robot_perception.currentXPosition());
+	int curr_map_y = robot_perception.worldToMap(robot_perception.currentYPosition());
+	int goal_cell_x = robot_perception.goalXPosition();
+	int goal_cell_y = robot_perception.goalYPosition();
+	
+	goal_cell_x = rand() % w;
+	goal_cell_y = rand() % h;
 	
 	//~ ROS_INFO_STREAM("Goal cell " << _goal_cell_x << " " << _goal_cell_y);
-	_goal_map_x = worldToMap(_goal_cell_x); // map(pixel)
-	_goal_map_y = worldToMap(_goal_cell_y);
+	int goal_map_x = robot_perception.worldToMap(goal_cell_x); // map(pixel)
+	int goal_map_y = robot_perception.worldToMap(goal_cell_y);
 	
-	while (!rightCell(_goal_map_x, _goal_map_y))
+	while (!robot_perception.rightCell(goal_map_x, goal_map_y))
 	{
-		_goal_cell_x = rand() % w;
-		_goal_cell_y = rand() % h;
+		goal_cell_x = rand() % w;
+		goal_cell_y = rand() % h;
 	
+		
 		//~ ROS_INFO_STREAM("Goal cell " << _goal_cell_x << " " << _goal_cell_y);
-		_goal_map_x = worldToMap(_goal_cell_x); // map(pixel)
-		_goal_map_y = worldToMap(_goal_cell_y);
+		//~ _goal_map_x = worldToMap(_goal_cell_x); // map(pixel)
+		//~ _goal_map_y = worldToMap(_goal_cell_y);
+		
+		int goal_map_x = robot_perception.worldToMap(goal_cell_x); // map(pixel)
+		int goal_map_y = robot_perception.worldToMap(goal_cell_y);
 		
 	}
 	
-	best_path = path(_curr_cell_x, _curr_cell_y, _goal_map_x, _goal_map_y);
-	ROS_INFO_STREAM("Got a start: " << _curr_cell_x << " " << _curr_cell_y 
-						<< " and a goal: " << _goal_cell_x << " " << _goal_cell_y);
+	//~ best_path = path(_curr_cell_x, _curr_cell_y, _goal_map_x, _goal_map_y);
+	//~ ROS_INFO_STREAM("Got a start: " << _curr_cell_x << " " << _curr_cell_y 
+						//~ << " and a goal: " << _goal_cell_x << " " << _goal_cell_y);
+						
+	best_path = path(curr_map_x, curr_map_y, goal_map_x, goal_map_y);
+	ROS_INFO_STREAM("Got a start: " << robot_perception.currentXPosition() << " " << robot_perception.currentYPosition() 
+					<< " and a goal: " << robot_perception.goalXPosition() << " " << robot_perception.goalYPosition());
 		
 	nav_msgs::Path plan;
 	geometry_msgs::PoseStamped pose;
@@ -121,8 +148,8 @@ bool Planner::random()
 	{
 
 		// geometry_msgs/PoseStamped[] -> geometry_msgs/Pose -> geometry_msgs/Point
-		pose.pose.position.x = best_path[ii].x * _resolution;
-		pose.pose.position.y = best_path[ii].y * _resolution;
+		pose.pose.position.x = best_path[ii].x * robot_perception.getMapResolution();
+		pose.pose.position.y = best_path[ii].y * robot_perception.getMapResolution();
 		pose.pose.position.z = 0.0;
 
 		// geometry_msgs/PoseStamped[] -> geometry_msgs/Pose -> geometry_msgs/Quaternion
@@ -138,151 +165,98 @@ bool Planner::random()
 	return true;
 }
 
-//elegxei an oi suntetagmenes tou keliou pou dothike anhkei ston xarth
-bool Planner::rightCell(int x, int y)
-{
-	bool valid = true;
-	
-	if (x >= _width || y >= _height || x < 0 || y < 0) 
-	{
-		valid = false;
-	}
-	else
-	{
-		int b = y * _width + x;
-		//~ (2,2) = y * _width + 2
-		//~ (1,4) = y * _width + 1
-		//~ (4,1) = y * _width + 4
-		//~ ROS_INFO_STREAM("index " << _index[b]);
-		
-		if (_index[b] == 0 )
-		{
-			//~ ROS_INFO_STREAM(" FREE ");			
-		}
-		else if (_index[b] == 100)
-		{
-			//~ ROS_INFO_STREAM(" OBSTACLE ");
-			valid = false;
-		}
-		else
-		{
-			//~ ROS_INFO_STREAM(" UNKNOWN ");
-			valid = false;
-		}
-	}
-	return valid;
-}
-
-//metatrepei tis suntetagmenes x,y tou xarth se suntetagmenes keliou
-int Planner::worldToMap(int w_coor)
-{
-	int m_coor = w_coor / _resolution;
-	return m_coor;
-}
-
-//metatrepei tis suntetagmenes x,y tou keliou se suntetagmenes tou xarth
-void Planner::mapToWorld(int m_x, int m_y)
-{
-	int w_x = m_x * _resolution;
-	int w_y = m_y * _resolution;
-}
-
-//upologizetai to h(x)
-int Planner::calculateHScore (int curr_map_x, int curr_map_y, 
+//calculate h(x), manhattan - euclidean distance
+float Planner::calculateHScore (int curr_map_x, int curr_map_y, 
 								int goal_map_x, int goal_map_y) 
 {
-	int h_score = abs(curr_map_x - goal_map_x) + abs(curr_map_y - goal_map_y);
-	//~ ROS_INFO_STREAM("Hscore " << h_score);
+	//~ float h_score = abs(curr_map_x - goal_map_x) + abs(curr_map_y - goal_map_y);
+	float h_score = (goal_map_x - curr_map_x) * (goal_map_x - curr_map_x) + (goal_map_y - curr_map_y) * (goal_map_y - curr_map_y);
+	h_score = sqrt(h_score);
 	return h_score;
 }
 
-std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y, 
+std::vector <cell> Planner::path (int curr_map_x, int curr_map_y, 
 									int goal_map_x, int goal_map_y)
 {
-	
 	std::vector <cell> open_list;
 	std::vector <cell> closed_list;
 	std::vector <cell> best_path;
+	std::vector <cell> _came_from;
 	
 	open_list.clear();
 	closed_list.clear();
 	best_path.clear();
 	_came_from.clear();
 	
-	cell C;
-	cell N_C;
-	cell C_F;
+	cell C; // gia closed_list kai came_from
+	cell N_C; // gia open_list
+	cell C_F; // gia came_from
 	
-	int curr_map_x = worldToMap(_curr_cell_x);
-	int curr_map_y = worldToMap(_curr_cell_y);
+	
 	float infinity = std::numeric_limits<float>::infinity();
 		
-	g_score = new float *[_width];
-	for (unsigned int ii = 0; ii < _width; ii ++) 
+	g_score = new float *[robot_perception.getMapWidth()];
+	for (unsigned int ii = 0; ii < robot_perception.getMapWidth(); ii ++) 
 	{
-		g_score[ii] = new float [_height];
-		for (unsigned int jj = 0; jj < _height; jj ++) 
+		g_score[ii] = new float [robot_perception.getMapHeight()];
+		for (unsigned int jj = 0; jj < robot_perception.getMapHeight(); jj ++) 
 		{
-			g_score[ii][jj] = _map_size + 1;
+			g_score[ii][jj] = robot_perception.getMapSize() + 1;
 		}
 	}
 		
-	f_score = new float *[_width];
-	for (unsigned int ii = 0; ii < _width; ii ++) 
+	f_score = new float *[robot_perception.getMapWidth()];
+	for (unsigned int ii = 0; ii < robot_perception.getMapWidth(); ii ++) 
 	{
-		f_score[ii] = new float [_height];
-		for (unsigned int jj = 0; jj < _height; jj ++) 
+		f_score[ii] = new float [robot_perception.getMapHeight()];
+		for (unsigned int jj = 0; jj < robot_perception.getMapHeight(); jj ++) 
 		{
 			f_score[ii][jj] = std::numeric_limits<float>::infinity();
 		}
 	}
-		
-	//prosthetw thn trexousa thesh (keli) sthn open list
+	
+	robot_perception.brushfire();
+	
+	//prosthetw thn trexousa thesh sthn open list
 	C.x = curr_map_x;
 	C.y = curr_map_y;
 	open_list.push_back(C);
+	
 	
 	int c_f_counter = 0; // gia na kserei apo poio keli egine h eksaplwsh
 	int g_counter = 0; // counter gia ta g_score
 	int counter = 0; // gia na kserei poio keli tha diagrapsei apo thn open list
 		
 	g_score[curr_map_x][curr_map_y] = 0; //gia to keli sto opoio vriskomaste
-	int h_score = calculateHScore(curr_map_x, curr_map_y, goal_map_x, goal_map_y);
+	float h_score = calculateHScore(curr_map_x, curr_map_y, goal_map_x, goal_map_y);
 	f_score[curr_map_x][curr_map_y] = g_score[curr_map_x][curr_map_y] + h_score;
 	
-		
 	while (!open_list.empty() && !(curr_map_x == goal_map_x && curr_map_y == goal_map_y))
 	{
-			
-		std::vector <cell> neighbour_cell;
-		neighbour_cell.clear();
-		
 		open_list.erase(open_list.begin() + counter);
 		closed_list.push_back(C);
 			
 		float min = infinity;
 		float new_g;
-			
+		
 		for (unsigned int ii = 1; ii <= 3; ii ++) 
 		{
 			for (unsigned int jj = 1; jj <= 3; jj ++) 
 			{				
 				int mx = curr_map_x + ii - 2; //to x tou geitona
 				int my = curr_map_y + jj - 2; //to y tou geitona
-					
-				//~ ROS_INFO_STREAM("neighbour " << mx << " " << my);
 				
 				//elegxei tous geitones
 				if ((ii - 2) == 0 && (jj - 2) == 0)
 				{
-					//~ ROS_INFO_STREAM("No Neighbours");
+					//~ ROS_INFO_STREAM("No Neighbour");
 				}				
 				else
 				{
-					//elegxw an einai mesa ston xarti kai eleuthero h oxi
-					if (rightCell(mx, my))
+					//elegxw an einai mesa ston xarth kai eleuthero h oxi
+					if (robot_perception.rightCell(mx, my))
 					{
-						if (g_score[mx][my] == _map_size + 1) //den exei epektathei akoma
+						if (g_score[mx][my] == robot_perception.getMapSize() + 1) //den exei epektathei akoma
 						{
 							//gia ta diagwnia kelia kelia
 							if (((mx - curr_map_x) == -1 && (my - curr_map_y) == -1)
@@ -291,17 +265,21 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y,
 								|| ((mx - curr_map_x) == 1 && (my - curr_map_y) == 1))
 							{
 								g_score[mx][my] = g_score[curr_map_x][curr_map_y] + 1.4;
+								//~ ROS_INFO_STREAM(" G " << g_score[mx][my] << " " << mx << " " << my);
 							}
 							else //gia ta panw-katw, deksia-aristera kelia
 							{
 								g_score[mx][my] = g_score[curr_map_x][curr_map_y] + 1;
+								//~ ROS_INFO_STREAM(" G " << g_score[mx][my] << " " << mx << " " << my);
 							}
 							
 							//~ ROS_INFO_STREAM("Not visited yet");
-							
 							h_score = calculateHScore(mx, my, goal_map_x, goal_map_y);
-							f_score[mx][my] = g_score[mx][my] + h_score;
-							//pernaei sthn open list ta geitonika diathesima kelia
+							f_score[mx][my] = g_score[mx][my] + h_score + 800 / robot_perception.getBrushfireCell(mx, my);
+							//~ f_score[mx][my] = f_score[mx][my] * f_score[mx][my];
+							//~ ROS_INFO_STREAM(" D " << _brushfire[mx][my] << " F " << f_score[mx][my] << " " << mx << " " << my);
+							
+							//pernaei sthn open list to geitoniko diathesimo keli
 							N_C.x = mx;
 							N_C.y = my;
 							N_C.f_score = f_score[mx][my];
@@ -309,13 +287,12 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y,
 							N_C.cf_y = curr_map_y;
 							N_C.counter = c_f_counter;
 							open_list.push_back(N_C);
-												
 						}
 						else //to exei ksanaepiskeuthei
 						{
 							for (unsigned int zz = 0; zz < open_list.size(); zz ++)
 							{
-								if (curr_map_x + ii - 2 == open_list[zz].x && curr_map_y + jj - 2 == open_list[zz].y)
+								if (mx == open_list[zz].x && my == open_list[zz].y)
 								{
 									//gia ta diagwnia kelia kelia
 									if ((mx - curr_map_x) == -1 && (my - curr_map_y) == -1
@@ -332,8 +309,11 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y,
 										
 									if (new_g < g_score[mx][my])
 									{
+										//~ ROS_INFO_STREAM(" D " << _brushfire[mx][my]);
 										g_score[mx][my] = new_g;
-										f_score[mx][my] = g_score[mx][my] + calculateHScore(mx, my, goal_map_x, goal_map_y);
+										f_score[mx][my] = g_score[mx][my] + calculateHScore(mx, my, goal_map_x, goal_map_y) 
+															+ 800 / robot_perception.getBrushfireCell(mx, my);
+										//~ f_score[mx][my] = f_score[mx][my] * f_score[mx][my];
 										open_list[zz].f_score = f_score[mx][my];
 										open_list[zz].cf_x = curr_map_x;
 										open_list[zz].cf_y = curr_map_y;
@@ -343,28 +323,36 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y,
 							}
 							//~ ROS_INFO_STREAM("Has visited");
 						}
+						//~ ROS_INFO_STREAM(" X " << mx << " Y " << my << " FSCORE " << f_score[mx][my]);
 					}
 				}
 			}
 		}
-				
-		//upologizei to mikrotero f_score apo ta kelia pou exei episkeuthei
+		
+		//upologizei to mikrotero f_score apo ta kelia pou exei episkeuthei mexri stigmhs
 		for (unsigned int zz = 0; zz < open_list.size(); zz ++)
 		{
 			if (min > open_list[zz].f_score)
-			{
+			{	
 				min = open_list[zz].f_score;
 				curr_map_x = open_list[zz].x;
 				curr_map_y = open_list[zz].y;
 				counter = zz;
+				//~ ROS_INFO_STREAM(" D " << _brushfire[curr_map_x][curr_map_y] << " F " 
+									//~ << min << " " << curr_map_x << " " << curr_map_y);
 			}
 		}
+		//~ ROS_INFO_STREAM("MIN " << min);
 		
 		//~ ROS_INFO_STREAM("Next cell " << curr_map_x << " " << curr_map_y);
 		C.x = curr_map_x;
 		C.y = curr_map_y;
-		C_F.x = open_list[counter].cf_x;
-		C_F.y = open_list[counter].cf_y;
+		
+		C_F.x = curr_map_x;
+		C_F.y = curr_map_y;
+		C_F.cf_x = open_list[counter].cf_x;
+		C_F.cf_y = open_list[counter].cf_y;
+		C_F.f_score = open_list[counter].f_score;
 		C_F.counter = open_list[counter].counter;
 		c_f_counter ++ ;
 		_came_from.push_back(C_F);
@@ -373,11 +361,16 @@ std::vector <cell> Planner::path (int _curr_cell_x, int _curr_cell_y,
 	C.x = goal_map_x;
 	C.y = goal_map_y;
 	C.counter = _came_from.size();
+	 
+	
 	closed_list.push_back(C);
 	_came_from.push_back(C);
+	
+	
 	best_path = reconstructPath(_came_from, goal_map_x, goal_map_y);
 	
-	for (unsigned int ii = 0; ii < _width; ii ++) 
+
+	for (unsigned int ii = 0; ii < robot_perception.getMapWidth(); ii ++) 
 	{
 		delete [] g_score[ii];
 		delete [] f_score[ii];
@@ -402,12 +395,15 @@ std::vector <cell> Planner::reconstructPath (const std::vector <cell>& _came_fro
 	cell B;
 	cell S;
 
-	//~ ROS_INFO_STREAM("size of vector " << count);
+	int sub_target_x = goal_map_x;
 	int current_x = goal_map_x;
 	int current_y = goal_map_y;
-	//~ ROS_INFO_STREAM("current " << _curr_cell_x << " " << _curr_cell_y);
-	
-	int counter1 = 0; // gia upostoxous
+	int sub_target_y = goal_map_y;
+		
+	int counter1 = 0; // for sub_target
+	_dokimi = 0;
+	int end_x;
+	int end_y;
 	
 	while (!(count == 0))
 	{
@@ -422,21 +418,45 @@ std::vector <cell> Planner::reconstructPath (const std::vector <cell>& _came_fro
 		
 		if (counter1 % 20 == 0)
 		{
+			end_x = current_x;
+			end_y = current_y;
 			S.x = current_x;
 			S.y = current_y;
 			subobjective_path.push_back(S);
-
 		}
 		counter1 ++;
-		
-		//~ ROS_INFO_STREAM("count " << count);
 	}
+	ROS_INFO_STREAM("reConstr " << current_x << " " << current_y << " " << end_x << " " << end_y);
+
+	if (!(end_x * robot_perception.getMapResolution() == robot_perception.currentXPosition()) 
+		|| !(end_y * robot_perception.getMapResolution() == robot_perception.currentXPosition()))
+	{
+		S.x = robot_perception.currentXPosition() / robot_perception.getMapResolution();
+		S.y = robot_perception.currentXPosition() / robot_perception.getMapResolution();
+		subobjective_path.push_back(S);
+	}
+	_counter = subobjective_path.size();
+	
+	_target_x = new float [_counter];
+	_target_y = new float [_counter];
+	for (unsigned int ii = 0; ii < _counter; ii ++) 
+	{
+		_target_x[ii] = subobjective_path[_counter - 1 - ii].x;
+		_target_y[ii] = subobjective_path[_counter - 1 - ii].y;
+		
+		int i = _target_x[ii];
+		int j = _target_y[ii];
+		
+		ROS_INFO_STREAM("targets " << i << " " << j << " F " << f_score[i][j]);
+		
+	}
+
+	
+	_vel_timer = _node.createTimer(ros::Duration(1.0), &Planner::velocity, this);		
 	
 	visual(subobjective_path);
-	
 	return best_path;
 }
-
 
 void Planner::visual(const std::vector <cell>& subobjective_path)
 {
@@ -452,13 +472,13 @@ void Planner::visual(const std::vector <cell>& subobjective_path)
 	
 	marker.id = 0;
 	marker.ns = "path_planning";
+	
 	for (unsigned int ii = 0; ii < subobjective_path.size(); ii ++)
 	{
-		
-		p.x = subobjective_path[ii].x * _resolution;
-		p.y = subobjective_path[ii].y * _resolution;
+		p.x = subobjective_path[ii].x * robot_perception.getMapResolution();
+		p.y = subobjective_path[ii].y * robot_perception.getMapResolution();
 		p.z = 0;
-		marker.points.push_back(p);
+		marker.points.push_back(p);	
 	}
 	
 	marker.pose.orientation.x = 0.0;
@@ -480,6 +500,101 @@ void Planner::visual(const std::vector <cell>& subobjective_path)
     
 }
 
+void Planner::velocity(const ros::TimerEvent& event)
+{
+	
+	geometry_msgs::Twist twist;
+	
+	twist.linear.x = 0.0;
+	twist.linear.y = 0.0;
+    twist.linear.z = 0.0;
+    twist.angular.x = 0.0;
+    twist.angular.y = 0.0;
+    twist.angular.z = 0.0;
+	
+	if (_dokimi > 0)
+	{
+		float current_x = _current_pose.x * robot_perception.getMapResolution();
+		float current_y = _current_pose.y * robot_perception.getMapResolution();
+		float sub_target_x = _sub_target.x * robot_perception.getMapResolution();
+		float sub_target_y = _sub_target.y * robot_perception.getMapResolution();
+		
+		float dis = distance(current_x, current_y, sub_target_x, sub_target_y);
+		float pi = 3.14159;
+		
+		_z = atan2(sub_target_y - current_y, sub_target_x - current_x)/1.0;
+		
+		float yaw = robot_perception.currentYaw();
+		float q = yaw - _z;
+
+		if (!((yaw < _z + 0.01) && (yaw > _z - 0.01)))
+		{
+			twist.angular.z = - yaw + atan2(sub_target_y - current_y, sub_target_x - current_x)/1.0;
+			if (twist.angular.z > - pi && twist.angular.z < 0)
+			{
+				twist.angular.z = twist.angular.z / pi;
+			}
+			else if (twist.angular.z < - pi)
+			{
+				twist.angular.z = (twist.angular.z + 2 * pi) / pi;
+			}
+			else if (twist.angular.z > pi)
+			{
+				twist.angular.z = (twist.angular.z - 2 * pi) / pi;
+			}
+			else if (twist.angular.z < pi && twist.angular.z > 0)
+			{
+				twist.angular.z = twist.angular.z / pi;
+			}
+			else
+			{
+				ROS_INFO_STREAM(" ");
+			}
+			_vel_pub.publish(twist);
+			test();
+		}
+		else
+		{
+			twist.linear.x = dis;
+			_vel_pub.publish(twist);
+			_dokimi ++;
+			test();
+		}
+	}
+	else
+	{
+		_dokimi ++;
+		test();
+	}
+		
+}
+
+void Planner::test()
+{
+	_current_pose.x = _target_x[_dokimi - 1];
+	_current_pose.y = _target_y[_dokimi - 1];
+	
+	_sub_target.x = _target_x[_dokimi];
+	_sub_target.y = _target_y[_dokimi];
+	
+	if (_dokimi > 0)
+	{
+		_x = _target_x[_dokimi - 1];
+		_y = _target_y[_dokimi - 1];
+	}
+	
+	if ((_current_pose.x == _sub_target.x) && (_current_pose.y == _sub_target.y))
+	{
+		_dokimi = 0;
+	}
+}
+
+float Planner::distance(float x1, float y1, float x2, float y2)
+{
+	float dis = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+	dis = sqrt(dis);
+	return dis;
+}
 
 
 

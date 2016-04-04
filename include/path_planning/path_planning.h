@@ -1,24 +1,25 @@
 #ifndef _PATH_PLANNING_H
 #define _PATH_PLANNING_H
 
-#include <iostream>
-#include <vector>
+#include "path_planning/start.h"
+#include "path_planning/goal.h"
+
+#include "path_planning/graph.h"
+#include "path_planning/node.h"
+#include "path_planning/robot_perception.h"
+
 #include <limits>
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/Twist.h>
 
-#include <tf/tf.h>
-#include <tf/transform_listener.h>
-#include <nav_msgs/GetMap.h>
 #include <nav_msgs/Path.h>
 
 #include <visualization_msgs/Marker.h>
-#include <sensor_msgs/Range.h>
 
-#include "path_planning/start.h"
-#include "path_planning/goal.h"
+
 
 struct cell {
 	int x;
@@ -27,39 +28,42 @@ struct cell {
 	int cf_x;
 	int cf_y;
 	int counter;
-	
 };
 
 
-class Planner{
+class Planner {
 	
 	ros::NodeHandle _node;
-	ros::Subscriber _sub;
 	ros::ServiceServer _service1;
 	ros::ServiceServer _service2;
-	ros::Timer _timer;
+	ros::ServiceServer _service3;
+	
+	ros::Timer _vel_timer;
+	
 	ros::Publisher _path_pub;
 	ros::Publisher _marker_pub;
 	ros::Publisher _vel_pub;
-	tf::TransformListener _listener;
 	
-	int * _index;
+	geometry_msgs::Twist _twist;	
+	geometry_msgs::Pose2D _sub_target;
+	geometry_msgs::Pose2D _current_pose;
+	
+	RobotPerception robot_perception;
+	
 	float ** g_score;
 	float ** f_score;
 	
-	int _goal_cell_x;
-	int _goal_cell_y;
-	int _goal_map_x;
-	int _goal_map_y;
+	float * _target_x;
+	float * _target_y;
 	
-	int _curr_cell_x;
-	int _curr_cell_y;
-	int _height;
-	int _width;
-	float _resolution;
-	int _map_size;
+	int _x; //krataei th x syntetagmenh toy prohgoymenou current
+	int _y; //krataei thn y syntetagmenh toy prohgoymenou current
+	float _z; //krataei thn prohgoumenh twist.angular.z
+
 	
-	std::vector <cell> _came_from;
+	int _dokimi; //counter gia ton pinaka twn upostoxwn
+	int _counter;
+	
 	
 	
 	public:
@@ -68,19 +72,18 @@ class Planner{
 	bool random();
 	bool goal(path_planning::goalRequest &req, path_planning::goalResponse &res);
 	bool start(path_planning::startRequest &req, path_planning::startResponse &res);
-	void currentPosition(const ros::TimerEvent& e);
-	void readMap(const nav_msgs::OccupancyGridConstPtr& msg);
 	
-	bool rightCell(int x, int y);
-	int worldToMap(int w_coor);
-	void mapToWorld(int m_x, int m_y);
-	
-	int calculateHScore(int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y);
+	float calculateHScore(int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y);
 	
 	std::vector <cell> path (int _curr_cell_x, int _curr_cell_y, int goal_map_x, int goal_map_y);
 	std::vector <cell> reconstructPath (const std::vector <cell>& _came_from, int goal_map_x, int goal_map_y);
 	
 	void visual(const std::vector <cell>& subobjective_path);
+	
+	void velocity(const ros::TimerEvent& event);
+	void test();
+	float distance(float current_x, float current_y, float sub_target_x, float sub_target_y);
+
 	
 };
 
