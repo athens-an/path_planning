@@ -8,7 +8,9 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  stdr_msgs
   geometry_msgs
+  sensor_msgs
   tf
   nav_msgs
   message_generation
@@ -59,6 +61,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    start.srv
    goal.srv
+   particleInitSrv.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -110,7 +113,9 @@ catkin_package(
   CATKIN_DEPENDS roscpp 
 				 rospy 
 				 std_msgs 
-				 geometry_msgs 
+				 stdr_msgs 
+				 geometry_msgs
+				 sensor_msgs 
 				 tf 
 				 nav_msgs
 				 message_runtime 
@@ -158,6 +163,17 @@ add_library(node_lib
 add_dependencies(node_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
+add_library(particle_lib
+   src/path_planning/particle.cpp
+)
+add_dependencies(particle_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+
+add_library(particle_filter_lib
+   src/path_planning/particle_filter.cpp
+)
+add_dependencies(particle_filter_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 ## Declare a C++ executable
  add_executable(path_planning src/path_planning/main.cpp)
  target_link_libraries(path_planning 
@@ -165,6 +181,8 @@ add_dependencies(node_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_
 						graph_lib
 						node_lib
 						robot_perception_lib
+						particle_lib
+						particle_filter_lib
 						${catkin_LIBRARIES})
  add_dependencies(path_planning path_planning_generate_messages_cpp)
  

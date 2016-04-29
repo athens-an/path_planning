@@ -6,9 +6,7 @@
 
 #include "path_planning/graph.h"
 #include "path_planning/node.h"
-#include "path_planning/robot_perception.h"
-
-#include <limits>
+#include "path_planning/particle_filter.h"
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -38,7 +36,12 @@ class Planner {
 	ros::ServiceServer _service2;
 	ros::ServiceServer _service3;
 	
+	ros::Timer _position_timer;
 	ros::Timer _vel_timer;
+	
+	
+	tf::TransformListener _listener;
+	
 	
 	ros::Publisher _path_pub;
 	ros::Publisher _marker_pub;
@@ -49,6 +52,10 @@ class Planner {
 	geometry_msgs::Pose2D _current_pose;
 	
 	RobotPerception robot_perception;
+	ParticleFilter particle_filter;
+	Node node_obj;
+	Graph graph_obj;
+	
 	
 	float ** g_score;
 	float ** f_score;
@@ -64,7 +71,10 @@ class Planner {
 	int _dokimi; //counter gia ton pinaka twn upostoxwn
 	int _counter;
 	
-	
+	float _curr_cell_x;
+	float _curr_cell_y;
+	float _curr_cell_z;
+	float _yaw;
 	
 	public:
 	
@@ -72,6 +82,8 @@ class Planner {
 	bool random();
 	bool goal(path_planning::goalRequest &req, path_planning::goalResponse &res);
 	bool start(path_planning::startRequest &req, path_planning::startResponse &res);
+	void currentPosition(const ros::TimerEvent& e);
+	
 	
 	float calculateHScore(int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y);
 	
