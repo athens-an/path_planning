@@ -3,10 +3,10 @@
 Node::Node()
 {
 	_graph_pub = _node.advertise<visualization_msgs::Marker>("visualization_graph", 1);
+	_graph_connections_pub = _node.advertise<visualization_msgs::MarkerArray>("visualization_graph_connection", 1);
 }
 
-void Node::uniforms(int width, int height, float resolution, int map_size, 
-					int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y)
+void Node::createNodes(int width, int height, float resolution, int map_size, int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y)
 {
 	_step = 20;
 	
@@ -14,7 +14,7 @@ void Node::uniforms(int width, int height, float resolution, int map_size,
 	node N; // gia uniforms (test)
 	 
 	
-	int counter = 0;
+	_counter = 0;
 	int curr_counter = 0;
 	int goal_counter = 0;
 	
@@ -26,15 +26,15 @@ void Node::uniforms(int width, int height, float resolution, int map_size,
 			{
 				N.x = ii;
 				N.y = jj;
-				N.node_counter = counter;
+				N.node_counter = _counter;
 				_neighbour_cell_test.push_back(N);
 				
-				counter ++ ;
+				_counter ++ ;
 			}
 		}
 	}
 	
-	int size = _neighbour_cell_test.size();
+	int nodes_size = _neighbour_cell_test.size();
 	for (unsigned int zz = 0; zz < _neighbour_cell_test.size(); zz ++)
 	{
 		if (!(curr_map_x == _neighbour_cell_test[zz].x && curr_map_y == _neighbour_cell_test[zz].y))
@@ -47,30 +47,30 @@ void Node::uniforms(int width, int height, float resolution, int map_size,
 		}
 	}
 	
-	if (curr_counter == size)
+	if (curr_counter == nodes_size)
 	{
 		N.x = curr_map_x;
 		N.y = curr_map_y;
-		N.node_counter = counter;
-		counter ++ ;
+		N.node_counter = _counter;
+		_counter ++ ;
 		_neighbour_cell_test.push_back(N);
 	}
 	
-	if (goal_counter == size)
+	if (goal_counter == nodes_size)
 	{
 		N.x = goal_map_x;
 		N.y = goal_map_y;
-		N.node_counter = counter;
-		counter ++ ;
+		N.node_counter = _counter;
+		_counter ++ ;
 		_neighbour_cell_test.push_back(N);
 	}
-	
-	
+		
 	createGraph(map_size, resolution);
 	
 	//~ graph_obj.visualGraph(_neighbour_cell.size());
 	
 }
+
 
 void Node::createGraph(int map_size, float resolution)
 {
@@ -90,18 +90,32 @@ void Node::createGraph(int map_size, float resolution)
 		}
 	}
 	
+	float step;
 	
 	for (unsigned ii = 0; ii < _neighbour_cell_test.size(); ii ++)
 	{
 		M.x = _neighbour_cell_test[ii].x;
 		M.y = _neighbour_cell_test[ii].y;
 		M.node_counter = ii;
+		
 		for (unsigned jj = 0; jj < _neighbour_cell_test.size(); jj ++)
 		{
+			
 			if (ii != jj)
 			{
+				if ((_neighbour_cell_test[ii].x % _step == 0 && _neighbour_cell_test[ii].y % _step == 0)
+						&& (_neighbour_cell_test[jj].x % _step == 0 && _neighbour_cell_test[jj].y % _step == 0))
+				{
+					step = _step;
+				}
+				else
+				{
+					step = 10;
+				}
 				
-				if ((_neighbour_cell_test[ii].x <= _neighbour_cell_test[jj].x + _step && _neighbour_cell_test[ii].y == _neighbour_cell_test[jj].y))
+				
+				if ((_neighbour_cell_test[ii].x == _neighbour_cell_test[jj].x + step 
+						&& _neighbour_cell_test[ii].y == _neighbour_cell_test[jj].y))
 				{
 					if (obstacleSearch(_neighbour_cell_test[ii].x, _neighbour_cell_test[ii].y, 	
 														_neighbour_cell_test[jj].x, _neighbour_cell_test[jj].y))
@@ -111,7 +125,8 @@ void Node::createGraph(int map_size, float resolution)
 					}
 				}
 				
-				if ((_neighbour_cell_test[ii].x <= _neighbour_cell_test[jj].x + _step && _neighbour_cell_test[ii].y <= _neighbour_cell_test[jj].y + _step))
+				if ((_neighbour_cell_test[ii].x == _neighbour_cell_test[jj].x + step 
+						&& _neighbour_cell_test[ii].y == _neighbour_cell_test[jj].y + step))
 				{
 					if (obstacleSearch(_neighbour_cell_test[ii].x, _neighbour_cell_test[ii].y, 
 														_neighbour_cell_test[jj].x, _neighbour_cell_test[jj].y))
@@ -121,7 +136,8 @@ void Node::createGraph(int map_size, float resolution)
 					}
 				}
 				
-				if ((_neighbour_cell_test[ii].x == _neighbour_cell_test[jj].x && _neighbour_cell_test[ii].y <= _neighbour_cell_test[jj].y + _step))
+				if ((_neighbour_cell_test[ii].x == _neighbour_cell_test[jj].x 
+						&& _neighbour_cell_test[ii].y == _neighbour_cell_test[jj].y + step))
 				{
 					if (obstacleSearch(_neighbour_cell_test[ii].x, _neighbour_cell_test[ii].y,
 														_neighbour_cell_test[jj].x, _neighbour_cell_test[jj].y))
@@ -130,7 +146,9 @@ void Node::createGraph(int map_size, float resolution)
 						M.distance[ii][jj] = abs(_neighbour_cell_test[ii].y - _neighbour_cell_test[jj].y);
 					}
 				}
-				if ((_neighbour_cell_test[ii].x <= _neighbour_cell_test[jj].x - _step && _neighbour_cell_test[ii].y <= _neighbour_cell_test[jj].y + _step))
+				
+				if ((_neighbour_cell_test[ii].x == _neighbour_cell_test[jj].x - step 
+						&& _neighbour_cell_test[ii].y == _neighbour_cell_test[jj].y + step))
 				{
 					if (obstacleSearch(_neighbour_cell_test[ii].x, _neighbour_cell_test[ii].y, 
 														_neighbour_cell_test[jj].x, _neighbour_cell_test[jj].y))
@@ -142,10 +160,12 @@ void Node::createGraph(int map_size, float resolution)
 			
 			}
 		}
+		
 		_neighbour_cell.push_back(M);
 	}
 	
-	visualGraph(_neighbour_cell.size(), resolution);
+	
+	//~ visualGraph(_neighbour_cell.size(), resolution);
 	
 }
 
@@ -167,7 +187,7 @@ bool Node::obstacleSearch(int x1, int y1, int x2, int y2)
 		step = y;
 	}
 	
-	//~ ROS_INFO_STREAM("5");
+	//~ ROS_INFO_STREAM("X1 " << x1 << " Y1 " << y1 << " X2 " << x2 << " Y2 " << y2);
 	for (unsigned int ii = 0; ii < step; ii ++)
 	{
 		if ((x1 == x2 + step && y1 == y2))
@@ -247,44 +267,33 @@ int Node::getStep()
 void Node::visualGraph(int size, float resolution)
 {
 	// Visualize the nodes
-    visualization_msgs::Marker marker, line_strip;
+    visualization_msgs::Marker marker, line;
+	visualization_msgs::MarkerArray line_strip;
+	
 	geometry_msgs::Point p;
 	
-	marker.header.frame_id = line_strip.header.frame_id = "map";
-	marker.header.stamp = line_strip.header.stamp = ros::Time::now();
+	marker.header.frame_id = "map";
+	marker.header.stamp = ros::Time::now();
 	
-	marker.type = visualization_msgs::Marker::CUBE_LIST;
-	line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+	marker.type = visualization_msgs::Marker::CUBE_LIST;	
+	marker.action = visualization_msgs::Marker::ADD;
 	
-	marker.action = line_strip.action = visualization_msgs::Marker::ADD;
-	
-	marker.id = 0;
-	line_strip.id = 1;
-	
-	marker.ns = line_strip.ns = "path_planning";
-	
+	marker.id = 0;	
+	marker.ns = "path_planning";
 	
 	marker.pose.orientation.x = 0.0;
 	marker.pose.orientation.y = 0.0;
 	marker.pose.orientation.z = 0.0;
-	marker.pose.orientation.w = line_strip.pose.orientation.w = 1.0;
+	marker.pose.orientation.w = 1.0;
   
 	marker.scale.x = 0.15;
 	marker.scale.y = 0.15;
 	marker.scale.z = 0.00;
 	
-	line_strip.scale.x = 0.05;
-	
 	marker.color.a = 1.0;
 	marker.color.r = 1.0;
 	marker.color.g = 0.0;
 	marker.color.b = 0.0;
-	
-	line_strip.color.a = 0.0;
-	line_strip.color.r = 0.0;
-	line_strip.color.g = 0.0;
-	line_strip.color.b = 1.0;
-	
 	
 	
 	for (unsigned int ii = 0; ii < size; ii ++)
@@ -292,15 +301,79 @@ void Node::visualGraph(int size, float resolution)
 		p.x = _neighbour_cell[ii].x * resolution;
 		p.y = _neighbour_cell[ii].y * resolution;
 		p.z = 0;
-		marker.points.push_back(p);		
+		
+		marker.points.push_back(p);
 	}
 	
-
+	
+	int st = 0;
+	
+	ROS_INFO_STREAM("SIZE " << size);
+	
+	for (unsigned int ii = 120; ii < 150; ii ++)
+	{
+		
+		for (unsigned int jj = 0; jj < size; jj ++)
+		{
+			geometry_msgs::Point p1, p2;
+			if (_neighbour_cell[ii].connections[ii][jj] == 1)
+			{
+				//~ ROS_INFO_STREAM("X " << ii << " Y " << jj);
+				line.header.frame_id = "map";
+				line.header.stamp = ros::Time::now();
+				
+				line.type = visualization_msgs::Marker::LINE_STRIP;
+				line.action = visualization_msgs::Marker::ADD;
+				
+				line.id = ii * size + jj;
+				
+				line.ns = "graph";
+				line.pose.orientation.w = 1.0;
+				line.scale.x = 0.05;
+				
+				
+				if (st == 0)
+				{
+					line.color.a = 1.0;
+					line.color.r = 0.0;
+					line.color.g = 0.0;
+					line.color.b = 1.0;
+					st ++;
+				}
+				else
+				{
+					line.color.a = 1.0;
+					line.color.r = 1.0;
+					line.color.g = 1.0;
+					line.color.b = 0.0;
+					st = 0;
+				}
+				
+				
+				p1.x = _neighbour_cell[ii].x * resolution;
+				p1.y = _neighbour_cell[ii].y * resolution;
+				p1.z = 0;
+				ROS_INFO_STREAM("X1 " << _neighbour_cell[ii].x << " Y1 " << _neighbour_cell[ii].y);
+				
+				p2.x = _neighbour_cell[jj].x * resolution;
+				p2.y = _neighbour_cell[jj].y * resolution;
+				p2.z = 0;
+				ROS_INFO_STREAM("X2 " << _neighbour_cell[jj].x << " Y2 " << _neighbour_cell[jj].y);
+				
+				
+				line.points.push_back(p2);
+				line.points.push_back(p1);
+				line_strip.markers.push_back(line);
+				
+				
+			}
+		}
+	}
 	
 	marker.lifetime = ros::Duration();
 	
 	_graph_pub.publish(marker);
-	_graph_pub.publish(line_strip);
+	_graph_connections_pub.publish(line_strip);
     
 }
 
@@ -317,21 +390,26 @@ bool Node::getObstacleSearch(int ii, int jj)
 	
 }
 
-float Node::getMinDistance(int ii)
+float Node::getMinDistance(int ii, int last_curr_node)
 {
 	float infinity = std::numeric_limits<float>::infinity();
 	float min = infinity;
 	for (unsigned jj = 0; jj < _neighbour_cell.size(); jj ++)
 	{
-		if (min > _neighbour_cell[ii].distance[ii][jj])
-		{			
-			min = _neighbour_cell[ii].distance[ii][jj];
-		}
-		if (min > _neighbour_cell[jj].distance[jj][ii])
+		if (jj != last_curr_node)
 		{
-			min = _neighbour_cell[jj].distance[jj][ii];
+			if (min > _neighbour_cell[ii].distance[ii][jj])
+			{			
+				min = _neighbour_cell[ii].distance[ii][jj];
+			}
+			if (min > _neighbour_cell[jj].distance[jj][ii])
+			{
+				min = _neighbour_cell[jj].distance[jj][ii];
+			}
 		}
 	}
+	
+	//~ ROS_INFO_STREAM("MIN " << min);
 	
 	return min;
 }

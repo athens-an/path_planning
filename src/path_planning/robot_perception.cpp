@@ -11,37 +11,12 @@ RobotPerception::RobotPerception()
 	if(!_node.getParam("y", _goal_cell_y))
     {
 		ROS_ERROR("wrong point y");
-	}
+	}	
+	
 	
 	_map_sub = _node.subscribe("/map", 1000, &RobotPerception::readMap, this);
-	_br_pub = _node.advertise<nav_msgs::OccupancyGrid>("/brush", 1);
-	
-	
-	
-	
-	
-	//~ ROS_INFO_STREAM("RobotPerception Constructor");
-	
-
-	if(!_node.getParam("/robot_laser_topic", _laser_topic_param))
-	{
-		ROS_ERROR("Laser topic param does not exist");
-	}	
-	_laser_sub = _node.subscribe(_laser_topic_param, 1, &RobotPerception::laserRangesCallback, this);
+	_br_pub = _node.advertise<nav_msgs::OccupancyGrid>("/brushfire", 1);
 		
-	if (!_node.getParam("/rfid_tags_topic", _rfid_tags_topic_param))
-	{
-		ROS_ERROR("Rfid_tags topic param does not exist");
-	}
-	_rfid_tags_sub = _node.subscribe(_rfid_tags_topic_param, 1, &RobotPerception::RfidTagsCallback, this);
-		
-	if (!_node.getParam("/rfid_reader_topic", _rfid_reader_topic_param))
-	{
-		ROS_ERROR("Rfid_reader topic param does not exist");
-	}
-	_rfid_reader_sub = _node.subscribe(_rfid_reader_topic_param, 1, &RobotPerception::RfidReaderCallback, this);
-	
-	
 	
 }
 
@@ -64,7 +39,7 @@ void RobotPerception::readMap(const nav_msgs::OccupancyGridConstPtr& msg)
 }
 
 
-//~ 
+
 //~ float RobotPerception::getCurrentXPosition()
 //~ {
 	//~ return _curr_cell_x;
@@ -251,130 +226,5 @@ int RobotPerception::getBrushfireCell(int x, int y)
 {
 	return _brushfire[x][y];
 }
-
-void RobotPerception::RfidTagsCallback(stdr_msgs::RfidTagVector rfid_tag_msg)
-{
-	_rfid_tags = rfid_tag_msg.rfid_tags;
-		
-	std::ofstream data_file;
-	data_file.open("/home/aspa/catkin_ws/src/thesis/localization_project/cfg/example.txt");
-	
-	for (unsigned int ii = 0; ii < _rfid_tags.size(); ii ++)
-	{
-		data_file << _rfid_tags[ii].tag_id << "\t" <<
-			_rfid_tags[ii].pose.x << "\t" << _rfid_tags[ii].pose.y << "\n"; 
-	}
-	
-	data_file.close();
-		
-	std::string line;
-	std::ifstream file ("/home/aspa/catkin_ws/src/thesis/localization_project/cfg/example.txt");
-	
-	if (file.is_open())
-	{
-		while (getline (file,line))
-		{
-			std::string id;
-			float x, y;
-			std::istringstream ss(line);
-			ss >> id >> x >> y;
-			_rfid_tags_id.push_back(id);
-			_rfid_tags_x.push_back(x);
-			_rfid_tags_y.push_back(y);
-		}
-		
-		file.close();
-	}	    
-}
-
-void RobotPerception::RfidReaderCallback(stdr_msgs::RfidSensorMeasurementMsg rfid_reader_msg)
-{
-	_rfid_pose.clear();
-	_rfid_ids = rfid_reader_msg.rfid_tags_ids;
-	_rfid_msgs = rfid_reader_msg.rfid_tags_msgs;
-	RfidPose();
-}
-
-void RobotPerception::RfidPose()
-{
-	for (unsigned int ii = 0; ii < _rfid_ids.size(); ii ++)
-	{
-		for (unsigned int jj = 0; jj < _rfid_tags_id.size(); jj ++)
-		{
-			if (!_rfid_ids[ii].compare(_rfid_tags_id[jj]))
-			{
-				std::vector<float> temp;
-				temp.push_back(_rfid_tags_x[jj]);
-				temp.push_back(_rfid_tags_y[jj]);
-				_rfid_pose.push_back(temp);
-			}
-		}
-	}
-	
-	//~ for (unsigned int ii = 0 ; ii < _rfid_pose.size() ; ii ++)
-	//~ {
-		//~ ROS_INFO_STREAM (" ii = " << ii );
-		//~ ROS_INFO_STREAM(" Pose x = " << _rfid_pose[ii][0] << " y = " << _rfid_pose[ii][1]);
-	//~ }
-}
-
-void RobotPerception::laserRangesCallback(sensor_msgs::LaserScan laser_scan_msg) 
-{
-	_increment = laser_scan_msg.angle_increment;
-	_angle_min = laser_scan_msg.angle_min;
-	_laser_ranges = laser_scan_msg.ranges;
-	_max_range = laser_scan_msg.range_max;
-	
-	for (unsigned int ii = 0; ii < _laser_ranges.size(); ii ++)
-	{
-		if (_laser_ranges[ii] > _max_range)
-		{
-			_laser_ranges[ii] = _max_range;
-		}
-	}		
-}
-
-std::vector<float> RobotPerception::getLaserRanges() 
-{
-	return _laser_ranges;
-}
-
-float RobotPerception::getRangeMax()
-{
-	return _max_range;
-}
-
-float RobotPerception::getAngleIncrement()
-{
-	return _increment;
-}
-
-float RobotPerception::getAngleMin()
-{
-	return _angle_min;
-}
-
-std::vector<std::string> RobotPerception::getRfidIds()
-{
-	return _rfid_ids;
-}
-
-std::vector<std::string> RobotPerception::getRfidMsgs()
-{
-	return _rfid_msgs;
-}
-
-std::vector<std::vector<float> > RobotPerception::getRfidPose()
-{
-	return _rfid_pose;
-}
-
-
-
-
-
-
-
-
 
 

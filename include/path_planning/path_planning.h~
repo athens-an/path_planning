@@ -6,7 +6,7 @@
 
 #include "path_planning/graph.h"
 #include "path_planning/node.h"
-
+#include "path_planning/particle_filter.h"
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -16,7 +16,7 @@
 #include <nav_msgs/Path.h>
 
 #include <visualization_msgs/Marker.h>
-#include <yaml-cpp/yaml.h>
+
 
 
 struct cell {
@@ -35,25 +35,26 @@ class Planner {
 	ros::ServiceServer _service1;
 	ros::ServiceServer _service2;
 	ros::ServiceServer _service3;
-	ros::Publisher _path_pub;
-	ros::Publisher _marker_pub;
-	ros::Publisher _vel_pub;
+	
 	ros::Timer _position_timer;
 	ros::Timer _vel_timer;
 	
-	tf::TransformListener _listener;	
+	
+	tf::TransformListener _listener;
+	
+	
+	ros::Publisher _path_pub;
+	ros::Publisher _marker_pub;
+	ros::Publisher _vel_pub;
+	
 	geometry_msgs::Twist _twist;	
 	geometry_msgs::Pose2D _sub_target;
 	geometry_msgs::Pose2D _current_pose;
 	
 	RobotPerception robot_perception;
+	ParticleFilter particle_filter;
 	Node node_obj;
 	Graph graph_obj;
-	
-	int _goal_counter;
-	int _goal_cell_x;
-	int _goal_cell_y;
-	
 	
 	
 	float ** g_score;

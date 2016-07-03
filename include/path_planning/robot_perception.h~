@@ -17,12 +17,35 @@
 #include <iterator>
 
 
-
 class RobotPerception {
 	
 	ros::NodeHandle _node;
 	ros::Subscriber _map_sub;
 	ros::Publisher _br_pub;
+	
+	
+	
+	
+	ros::Subscriber _laser_sub;
+	ros::Subscriber _rfid_reader_sub;
+	ros::Subscriber _rfid_tags_sub;
+	std::string _map_topic_param;
+	std::string _laser_topic_param;
+	std::string _rfid_reader_topic_param;
+	std::string _rfid_tags_topic_param;
+	std::vector<float> _laser_ranges;
+	std::vector<std::string> _rfid_ids;
+	std::vector<std::string> _rfid_msgs;
+	std::vector<std::vector<float> > _rfid_pose;
+	std::vector<stdr_msgs::RfidTag> _rfid_tags;
+	std::vector<std::string> _rfid_tags_id;
+	std::vector<float> _rfid_tags_x;
+	std::vector<float> _rfid_tags_y;
+	float _max_range;
+	float _increment;
+	float _angle_min;
+	
+	
 	
 	int _width;
 	int _height;
@@ -38,6 +61,7 @@ class RobotPerception {
 	float _goal_cell_y;
 	
 	
+	
 	public:
 	
 	RobotPerception();
@@ -46,9 +70,7 @@ class RobotPerception {
 	int getMapWidth();
 	int getMapHeight();
 	int getMapSize();
-	float getMapResolution();
-	int getMapCell(int ii, int jj); 
-	int* getMapIndex();
+	float getMapResolution();	
 	
 	//~ void currentPosition(const ros::TimerEvent& e);
 	//~ float getCurrentXPosition();
@@ -66,6 +88,23 @@ class RobotPerception {
 	int getBrushfireCell(int x, int y);
 	
 	
+	void laserRangesCallback(sensor_msgs::LaserScan laser_scan_msg);
+	void RfidReaderCallback (stdr_msgs::RfidSensorMeasurementMsg rfid_reader_msg);
+	void RfidTagsCallback (stdr_msgs::RfidTagVector rfid_tag_msg);
+	void RfidPose();
+	std::vector<float> getLaserRanges();
+	float getRangeMax();
+	float getAngleIncrement();
+	float getAngleMin();
+	std::vector<std::string> getRfidIds();
+	std::vector<std::string> getRfidMsgs();
+	std::vector<std::vector<float> > getRfidPose();
+	int getMapCell(int ii, int jj);
+	int* getMapIndex();
+	
+	
+	
+
 };
 
 #endif

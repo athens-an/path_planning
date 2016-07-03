@@ -4,6 +4,7 @@
 
 #include "path_planning/robot_perception.h"
 #include "path_planning/graph.h"
+#include <visualization_msgs/MarkerArray.h>
 
 #include <ros/ros.h>
 #include <vector>
@@ -23,11 +24,13 @@ class Node {
 	
 	ros::NodeHandle _node;
 	ros::Publisher _graph_pub;
+	ros::Publisher _graph_connections_pub;
 	
 	RobotPerception robot_perception;
 	Graph graph_obj;
 	
 	int _step;
+	int _counter; // gia to node_counters
 	
 	std::vector <node> _neighbour_cell_test; //uniforms
 	std::vector <node> _neighbour_cell; //uniforms
@@ -38,8 +41,7 @@ class Node {
 	public:
 	
 	Node();
-	void uniforms(int width, int height, float resolution, int map_size, 
-					int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y);
+	void createNodes(int width, int height, float resolution, int map_size, int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y);
 	
 	void createGraph(int map_size, float resolution);
 	bool obstacleSearch(int x1, int y1, int x2, int y2);
@@ -52,7 +54,7 @@ class Node {
 	int getNeighbourCellNodeCounter(int curr_map_x, int curr_map_y);
 	int getStep();
 	bool getObstacleSearch(int ii, int jj);
-	float getMinDistance(int ii);
+	float getMinDistance(int ii, int last_curr_node);
 	bool getPixelGraph(int x, int y);
 	
 };
