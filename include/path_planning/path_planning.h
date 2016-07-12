@@ -7,7 +7,6 @@
 #include "path_planning/graph.h"
 #include "path_planning/node.h"
 
-
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Pose2D.h>
@@ -50,6 +49,12 @@ class Planner {
 	Node node_obj;
 	Graph graph_obj;
 	
+	float _duration;
+	float _distance_limit;
+	float _yaw_limit;
+	
+	
+	
 	int _goal_counter;
 	int _goal_cell_x;
 	int _goal_cell_y;
@@ -73,7 +78,7 @@ class Planner {
 	float _curr_cell_x;
 	float _curr_cell_y;
 	float _curr_cell_z;
-	float _yaw;
+	float _yaw;	
 	
 	public:
 	

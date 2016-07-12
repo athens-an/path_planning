@@ -29,7 +29,7 @@ class Node {
 	RobotPerception robot_perception;
 	Graph graph_obj;
 	
-	int _step;
+	int _step_node;
 	int _counter; // gia to node_counters
 	
 	std::vector <node> _neighbour_cell_test; //uniforms

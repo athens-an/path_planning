@@ -7,12 +7,27 @@ Planner::Planner()
 	_service2 = _node.advertiseService("start", &Planner::start, this);
 	_service1 = _node.advertiseService("goal", &Planner::goal, this);
 	
+	if(!_node.getParam("duration", _duration))
+    {
+		ROS_ERROR("Duration param does not exist");
+	}
+	
+	if(!_node.getParam("distance_limit", _distance_limit))
+    {
+		ROS_ERROR("Distance_limit param does not exist");
+	}
+	
+	if(!_node.getParam("yaw_limit", _yaw_limit))
+    {
+		ROS_ERROR("Yaw_limit param does not exist");
+	}
+	
 	_path_pub = _node.advertise<nav_msgs::Path>("/move_base_simple/path", 10);
 	_marker_pub = _node.advertise<visualization_msgs::Marker>("visualization_marker", 1);
 	_vel_pub = _node.advertise<geometry_msgs::Twist>("/robot0/cmd_vel", 1);
 	
 	//transform a point once every second
-	_position_timer = _node.createTimer(ros::Duration(1.0), &Planner::currentPosition, this); // to duration se yaml
+	_position_timer = _node.createTimer(ros::Duration(_duration), &Planner::currentPosition, this);
 }
 
 bool Planner::start(path_planning::startRequest &req, 
@@ -246,7 +261,7 @@ void Planner::currentPosition(const ros::TimerEvent& e)
 	{
 		tf::StampedTransform transform;
 		
-		_listener.lookupTransform("/map", "robot0", ros::Time(0), transform);
+		_listener.lookupTransform("/map", "nao_pose", ros::Time(0), transform);
 		
 		_curr_cell_x = transform.getOrigin()[0]; //transform.getOrigin().x()
 		_curr_cell_y = transform.getOrigin()[1];
@@ -254,10 +269,8 @@ void Planner::currentPosition(const ros::TimerEvent& e)
 		_yaw = tf::getYaw(transform.getRotation());
 
 		
-		ROS_INFO_STREAM("CURRENT POSITION: " << _curr_cell_x << " " 
-							<< _curr_cell_y << " " << _yaw);
-									
-		//~ ROS_INFO_STREAM("rotation: " << _yaw);
+		//~ ROS_INFO_STREAM("CURRENT POSITION: " << _curr_cell_x << " " 
+							//~ << _curr_cell_y << " " << _yaw);
 							
 	}
 	catch(tf::TransformException& ex){
@@ -569,7 +582,7 @@ std::vector <cell> Planner::reconstructPath (const std::vector <cell>& _came_fro
 	}
 
 	
-	_vel_timer = _node.createTimer(ros::Duration(1.0), &Planner::velocity, this);		
+	_vel_timer = _node.createTimer(ros::Duration(_duration), &Planner::velocity, this);		
 	
 	visual(subobjective_path);
 	return best_path;
@@ -629,6 +642,9 @@ void Planner::velocity(const ros::TimerEvent& event)
     twist.angular.y = 0.0;
     twist.angular.z = 0.0;
 	
+	
+	ROS_INFO_STREAM("DOKIMI " << _dokimi);
+	
 	if (_dokimi > 0)
 	{
 		float current_x = _current_pose.x * robot_perception.getMapResolution();
@@ -636,56 +652,63 @@ void Planner::velocity(const ros::TimerEvent& event)
 		float sub_target_x = _sub_target.x * robot_perception.getMapResolution();
 		float sub_target_y = _sub_target.y * robot_perception.getMapResolution();
 		
-		float dis = distance(current_x, current_y, sub_target_x, sub_target_y);
+		float dis = distance(_curr_cell_x, _curr_cell_y, sub_target_x, sub_target_y);
 		float pi = 3.14159;
 		
 		_z = atan2(sub_target_y - current_y, sub_target_x - current_x) / 1.0;
 		
 		
+		
 		float yaw = _yaw;
-		float q = yaw - _z;
-
-
-		float a = q - 0.01;
-		float b = q + 0.01;
 		
-		
-		if (yaw < - pi + 0.01)
+		if (dis > 0)
 		{
-			yaw = - yaw;
-		}
-		
-		if (!(yaw < _z + 0.01 && yaw > _z - 0.01))
-		{
-			twist.angular.z = - yaw + atan2(sub_target_y - current_y, sub_target_x - current_x) / 1.0;
-			if (twist.angular.z > - pi && twist.angular.z < 0)
+			if (!(yaw < _z + _yaw_limit && yaw > _z - _yaw_limit))
 			{
-				twist.angular.z = twist.angular.z / pi;
-			}
-			else if (twist.angular.z < - pi)
-			{
-				twist.angular.z = (twist.angular.z + 2 * pi) / pi;
-			}
-			else if (twist.angular.z > pi)
-			{
-				twist.angular.z = (twist.angular.z - 2 * pi) / pi;
-			}
-			else if (twist.angular.z < pi && twist.angular.z > 0)
-			{
-				twist.angular.z = twist.angular.z / pi;
+				twist.angular.z = - yaw + atan2(sub_target_y - current_y, sub_target_x - current_x) / 1.0;
+				if (twist.angular.z > - pi && twist.angular.z <= 0)
+				{
+					twist.angular.z = twist.angular.z / pi;
+					
+				}
+				else if (twist.angular.z < - pi && twist.angular.z < 0)
+				{
+					twist.angular.z = (twist.angular.z + 2 * pi) / pi;
+					
+				}
+				else if (twist.angular.z >= pi && twist.angular.z > 0)
+				{
+					twist.angular.z = (twist.angular.z - 2 * pi) / pi;
+					
+				}
+				else if (twist.angular.z < pi && twist.angular.z >= 0)
+				{
+					twist.angular.z = twist.angular.z / pi;
+					
+				}
+				else
+				{
+				}
+				_vel_pub.publish(twist);
+				test();
 			}
 			else
 			{
+				twist.linear.x = 0.05;
+				_vel_pub.publish(twist);
+				ROS_INFO_STREAM("5 ");
+				ROS_INFO_STREAM("X: " << _curr_cell_x << " Y: " << _curr_cell_y);
+				ROS_INFO_STREAM("YAW: " << _yaw << " GOAL_YAW: " << _z);
+				ROS_INFO_STREAM("TWIST: " << twist.angular.z);
+				ROS_INFO_STREAM("CURR_X: " << current_x << " CURR_Y: " << current_y);
+				ROS_INFO_STREAM("SUB_X: " << sub_target_x << " SUB_Y: " << sub_target_y);
+				
+				if (dis < _distance_limit)
+				{
+					_dokimi ++;
+				}
+				test();
 			}
-			_vel_pub.publish(twist);
-			test();
-		}
-		else
-		{
-			twist.linear.x = dis;
-			_vel_pub.publish(twist);
-			_dokimi ++;
-			test();
 		}
 	}
 	else

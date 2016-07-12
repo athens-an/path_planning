@@ -2,13 +2,17 @@
 
 Node::Node()
 {
+	if(!_node.getParam("step_node", _step_node))
+    {
+		ROS_ERROR("Duration param does not exist");
+	}
+	
 	_graph_pub = _node.advertise<visualization_msgs::Marker>("visualization_graph", 1);
 	_graph_connections_pub = _node.advertise<visualization_msgs::MarkerArray>("visualization_graph_connection", 1);
 }
 
 void Node::createNodes(int width, int height, float resolution, int map_size, int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y)
 {
-	_step = 20;
 	
 	_neighbour_cell_test.clear();
 	node N; // gia uniforms (test)
@@ -18,9 +22,9 @@ void Node::createNodes(int width, int height, float resolution, int map_size, in
 	int curr_counter = 0;
 	int goal_counter = 0;
 	
-	for (unsigned ii = 0; ii < width; ii = ii + _step)
+	for (unsigned ii = 0; ii < width; ii = ii + _step_node)
 	{
-		for (unsigned jj = 0; jj < height; jj = jj + _step)
+		for (unsigned jj = 0; jj < height; jj = jj + _step_node)
 		{
 			if (robot_perception.rightCell(ii, jj))
 			{
@@ -103,10 +107,10 @@ void Node::createGraph(int map_size, float resolution)
 			
 			if (ii != jj)
 			{
-				if ((_neighbour_cell_test[ii].x % _step == 0 && _neighbour_cell_test[ii].y % _step == 0)
-						&& (_neighbour_cell_test[jj].x % _step == 0 && _neighbour_cell_test[jj].y % _step == 0))
+				if ((_neighbour_cell_test[ii].x % _step_node == 0 && _neighbour_cell_test[ii].y % _step_node == 0)
+						&& (_neighbour_cell_test[jj].x % _step_node == 0 && _neighbour_cell_test[jj].y % _step_node == 0))
 				{
-					step = _step;
+					step = _step_node;
 				}
 				else
 				{
@@ -261,7 +265,7 @@ int Node::getNeighbourCellNodeCounter(int curr_map_x, int curr_map_y)
 
 int Node::getStep()
 {
-	return _step;
+	return _step_node;
 }
 
 void Node::visualGraph(int size, float resolution)

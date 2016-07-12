@@ -1,0 +1,10 @@
+map_topic: /map
+
+step_node: 20
+
+duration: 1.0
+
+distance_limit: 0.1
+
+yaw_limit: 0.05
+

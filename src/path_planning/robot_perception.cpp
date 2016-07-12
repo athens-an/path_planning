@@ -1,22 +1,9 @@
 #include "path_planning/robot_perception.h"
 
 RobotPerception::RobotPerception()
-{
-	
-	if(!_node.getParam("x", _goal_cell_x))
-    {
-		ROS_ERROR("wrong point x");
-	}
-	
-	if(!_node.getParam("y", _goal_cell_y))
-    {
-		ROS_ERROR("wrong point y");
-	}	
-	
-	
+{	
 	_map_sub = _node.subscribe("/map", 1000, &RobotPerception::readMap, this);
 	_br_pub = _node.advertise<nav_msgs::OccupancyGrid>("/brushfire", 1);
-		
 	
 }
 
