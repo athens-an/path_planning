@@ -7,6 +7,12 @@ Planner::Planner()
 	_service2 = _node.advertiseService("start", &Planner::start, this);
 	_service1 = _node.advertiseService("goal", &Planner::goal, this);
 	
+	
+	if(!_node.getParam("/velocity_topic", _velocity_topic))
+    {
+		ROS_ERROR("Velocity_topic param does not exist");
+	}
+	
 	if(!_node.getParam("duration", _duration))
     {
 		ROS_ERROR("Duration param does not exist");
@@ -34,7 +40,7 @@ Planner::Planner()
 	
 	_path_pub = _node.advertise<nav_msgs::Path>("/move_base_simple/path", 10);
 	_marker_pub = _node.advertise<visualization_msgs::Marker>("visualization_marker", 1);
-	_vel_pub = _node.advertise<geometry_msgs::Twist>("/robot0/cmd_vel", 1);
+	_vel_pub = _node.advertise<geometry_msgs::Twist>(_velocity_topic, 1);
 	
 	//transform a point once every second
 	_position_timer = _node.createTimer(ros::Duration(_duration), &Planner::currentPosition, this);
@@ -127,8 +133,10 @@ bool Planner::goal(path_planning::goalRequest &req,
 	// gia synexomenous stoxous
 	std::vector <cell> best_path;
 	best_path.clear();
-	
-	YAML::Node baseNode = YAML::LoadFile("/home/athina/catkin_ws/src/path_planning/cfg/goals.yaml");
+		
+	std::string _path = ros::package::getPath("path_planning");
+
+	YAML::Node baseNode = YAML::LoadFile(_path + "/cfg/goals.yaml");
 	if (baseNode.IsNull()) {
 		ROS_INFO_STREAM("B");
 		return false;

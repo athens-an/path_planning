@@ -1,6 +1,7 @@
 #ifndef _PATH_PLANNING_H
 #define _PATH_PLANNING_H
 
+#include "ros/package.h"
 #include "path_planning/start.h"
 #include "path_planning/goal.h"
 
@@ -44,6 +45,8 @@ class Planner {
 	geometry_msgs::Twist _twist;	
 	geometry_msgs::Pose2D _sub_target;
 	geometry_msgs::Pose2D _current_pose;
+	
+	std::string _velocity_topic;
 	
 	RobotPerception robot_perception;
 	Node node_obj;

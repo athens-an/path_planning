@@ -7,6 +7,7 @@ project(path_planning)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  roslib
   std_msgs
   stdr_msgs
   geometry_msgs
@@ -110,7 +111,7 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES path_planning
   CATKIN_DEPENDS roscpp 
-				 rospy 
+				 rospy
 				 std_msgs 
 				 stdr_msgs
 				 geometry_msgs
