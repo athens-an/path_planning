@@ -46,7 +46,9 @@ class Planner {
 	geometry_msgs::Pose2D _sub_target;
 	geometry_msgs::Pose2D _current_pose;
 	
+	std::string _map_topic;
 	std::string _velocity_topic;
+	std::string _position_topic;
 	
 	RobotPerception robot_perception;
 	Node node_obj;

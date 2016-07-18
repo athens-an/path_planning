@@ -2,6 +2,8 @@ map_topic: /map
 
 velocity_topic: /robot0/cmd_vel
 
+position_topic: /nao_pose
+
 step_node: 20
 
 duration: 1.0

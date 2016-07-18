@@ -8,9 +8,19 @@ Planner::Planner()
 	_service1 = _node.advertiseService("goal", &Planner::goal, this);
 	
 	
+	if(!_node.getParam("/map_topic", _map_topic))
+    {
+		ROS_ERROR("Map_topic param does not exist");
+	}
+	
 	if(!_node.getParam("/velocity_topic", _velocity_topic))
     {
 		ROS_ERROR("Velocity_topic param does not exist");
+	}
+	
+	if(!_node.getParam("/position_topic", _position_topic))
+    {
+		ROS_ERROR("Position_topic param does not exist");
 	}
 	
 	if(!_node.getParam("duration", _duration))
@@ -290,7 +300,7 @@ void Planner::currentPosition(const ros::TimerEvent& e)
 	{
 		tf::StampedTransform transform;
 		
-		_listener.lookupTransform("/map", "nao_pose", ros::Time(0), transform);
+		_listener.lookupTransform("_map_topic", "_position_topic", ros::Time(0), transform);
 		
 		_curr_cell_x = transform.getOrigin()[0]; //transform.getOrigin().x()
 		_curr_cell_y = transform.getOrigin()[1];
