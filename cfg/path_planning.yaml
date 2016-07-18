@@ -8,3 +8,6 @@ distance_limit: 0.1
 
 yaw_limit: 0.05
 
+brushfire_const: 1000
+
+brushfire_limit: 13

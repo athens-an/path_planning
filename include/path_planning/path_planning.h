@@ -52,6 +52,8 @@ class Planner {
 	float _duration;
 	float _distance_limit;
 	float _yaw_limit;
+	float _brushfire_const;
+	int _brushfire_limit;
 	
 	
 	
@@ -80,6 +82,9 @@ class Planner {
 	float _curr_cell_z;
 	float _yaw;	
 	
+	
+	bool _final_goal;
+	
 	public:
 	
 	Planner();
@@ -93,6 +98,8 @@ class Planner {
 	
 	std::vector <cell> path (int _curr_cell_x, int _curr_cell_y, int goal_map_x, int goal_map_y);
 	std::vector <cell> reconstructPath (const std::vector <cell>& _came_from, int goal_map_x, int goal_map_y);
+	
+	bool finalGoal(const std::vector <cell>& _came_from, int goal_map_x, int goal_map_y);
 	
 	void visual(const std::vector <cell>& subobjective_path);
 	

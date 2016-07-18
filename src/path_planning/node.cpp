@@ -75,7 +75,6 @@ void Node::createNodes(int width, int height, float resolution, int map_size, in
 	
 }
 
-
 void Node::createGraph(int map_size, float resolution)
 {
 	_neighbour_cell.clear();
@@ -168,8 +167,14 @@ void Node::createGraph(int map_size, float resolution)
 		_neighbour_cell.push_back(M);
 	}
 	
-	
-	//~ visualGraph(_neighbour_cell.size(), resolution);
+	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][635] << " CONNECT2 " << M.connections[635][636]);
+	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][637] << " CONNECT2 " << M.connections[637][636]);
+	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][603] << " CONNECT2 " << M.connections[603][636]);
+	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][604] << " CONNECT2 " << M.connections[604][636]);
+	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][605] << " CONNECT2 " << M.connections[605][636]);
+	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][667] << " CONNECT2 " << M.connections[667][636]);
+	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][668] << " CONNECT2 " << M.connections[668][636]);
+	visualGraph(_neighbour_cell.size(), resolution);
 	
 }
 
@@ -302,77 +307,89 @@ void Node::visualGraph(int size, float resolution)
 	
 	for (unsigned int ii = 0; ii < size; ii ++)
 	{
+		//~ if ((_neighbour_cell[ii].x == 740 && _neighbour_cell[ii].y == 680)
+			//~ || (_neighbour_cell[ii].x == 740 && _neighbour_cell[ii].y == 700)
+			//~ || (_neighbour_cell[ii].x == 740 && _neighbour_cell[ii].y == 660)
+			//~ || (_neighbour_cell[ii].x == 720 && _neighbour_cell[ii].y == 680)
+			//~ || (_neighbour_cell[ii].x == 760 && _neighbour_cell[ii].y == 680)
+			//~ || (_neighbour_cell[ii].x == 720 && _neighbour_cell[ii].y == 700)
+			//~ || (_neighbour_cell[ii].x == 720 && _neighbour_cell[ii].y == 660)
+			//~ || (_neighbour_cell[ii].x == 760 && _neighbour_cell[ii].y == 700)
+			//~ || (_neighbour_cell[ii].x == 760 && _neighbour_cell[ii].y == 660))
+			//~ {
 		p.x = _neighbour_cell[ii].x * resolution;
 		p.y = _neighbour_cell[ii].y * resolution;
 		p.z = 0;
-		
+				//~ ROS_INFO_STREAM("X " << _neighbour_cell[ii].x << " Y " << _neighbour_cell[ii].y << " COUNTER " << ii);
+
 		marker.points.push_back(p);
+			//~ }
 	}
 	
 	
-	int st = 0;
-	
-	ROS_INFO_STREAM("SIZE " << size);
-	
-	for (unsigned int ii = 120; ii < 150; ii ++)
-	{
-		
-		for (unsigned int jj = 0; jj < size; jj ++)
-		{
-			geometry_msgs::Point p1, p2;
-			if (_neighbour_cell[ii].connections[ii][jj] == 1)
-			{
-				//~ ROS_INFO_STREAM("X " << ii << " Y " << jj);
-				line.header.frame_id = "map";
-				line.header.stamp = ros::Time::now();
-				
-				line.type = visualization_msgs::Marker::LINE_STRIP;
-				line.action = visualization_msgs::Marker::ADD;
-				
-				line.id = ii * size + jj;
-				
-				line.ns = "graph";
-				line.pose.orientation.w = 1.0;
-				line.scale.x = 0.05;
-				
-				
-				if (st == 0)
-				{
-					line.color.a = 1.0;
-					line.color.r = 0.0;
-					line.color.g = 0.0;
-					line.color.b = 1.0;
-					st ++;
-				}
-				else
-				{
-					line.color.a = 1.0;
-					line.color.r = 1.0;
-					line.color.g = 1.0;
-					line.color.b = 0.0;
-					st = 0;
-				}
-				
-				
-				p1.x = _neighbour_cell[ii].x * resolution;
-				p1.y = _neighbour_cell[ii].y * resolution;
-				p1.z = 0;
-				ROS_INFO_STREAM("X1 " << _neighbour_cell[ii].x << " Y1 " << _neighbour_cell[ii].y);
-				
-				p2.x = _neighbour_cell[jj].x * resolution;
-				p2.y = _neighbour_cell[jj].y * resolution;
-				p2.z = 0;
-				ROS_INFO_STREAM("X2 " << _neighbour_cell[jj].x << " Y2 " << _neighbour_cell[jj].y);
-				
-				
-				line.points.push_back(p2);
-				line.points.push_back(p1);
-				line_strip.markers.push_back(line);
-				
-				
-			}
-		}
-	}
+	//~ int st = 0;
+	//~ 
+	//~ ROS_INFO_STREAM("SIZE " << size);
+	//~ 
+	//~ for (unsigned int ii = 120; ii < 150; ii ++)
+	//~ {
+		//~ 
+		//~ for (unsigned int jj = 0; jj < size; jj ++)
+		//~ {
+			//~ geometry_msgs::Point p1, p2;
+			//~ if (_neighbour_cell[ii].connections[ii][jj] == 1)
+			//~ {
+				//~ //ROS_INFO_STREAM("X " << ii << " Y " << jj);
+				//~ line.header.frame_id = "map";
+				//~ line.header.stamp = ros::Time::now();
+				//~ 
+				//~ line.type = visualization_msgs::Marker::LINE_STRIP;
+				//~ line.action = visualization_msgs::Marker::ADD;
+				//~ 
+				//~ line.id = ii * size + jj;
+				//~ 
+				//~ line.ns = "graph";
+				//~ line.pose.orientation.w = 1.0;
+				//~ line.scale.x = 0.05;
+				//~ 
+				//~ 
+				//~ if (st == 0)
+				//~ {
+					//~ line.color.a = 1.0;
+					//~ line.color.r = 0.0;
+					//~ line.color.g = 0.0;
+					//~ line.color.b = 1.0;
+					//~ st ++;
+				//~ }
+				//~ else
+				//~ {
+					//~ line.color.a = 1.0;
+					//~ line.color.r = 1.0;
+					//~ line.color.g = 1.0;
+					//~ line.color.b = 0.0;
+					//~ st = 0;
+				//~ }
+				//~ 
+				//~ 
+				//~ p1.x = _neighbour_cell[ii].x * resolution;
+				//~ p1.y = _neighbour_cell[ii].y * resolution;
+				//~ p1.z = 0;
+				//~ ROS_INFO_STREAM("X1 " << _neighbour_cell[ii].x << " Y1 " << _neighbour_cell[ii].y);
+				//~ 
+				//~ p2.x = _neighbour_cell[jj].x * resolution;
+				//~ p2.y = _neighbour_cell[jj].y * resolution;
+				//~ p2.z = 0;
+				//~ ROS_INFO_STREAM("X2 " << _neighbour_cell[jj].x << " Y2 " << _neighbour_cell[jj].y);
+				//~ 
+				//~ 
+				//~ line.points.push_back(p2);
+				//~ line.points.push_back(p1);
+				//~ line_strip.markers.push_back(line);
+				//~ 
+				//~ 
+			//~ }
+		//~ }
+	//~ }
 	
 	marker.lifetime = ros::Duration();
 	
@@ -383,7 +400,8 @@ void Node::visualGraph(int size, float resolution)
 
 bool Node::getObstacleSearch(int ii, int jj)
 {
-	if (_neighbour_cell[ii].connections[ii][jj] == 1)
+	if (_neighbour_cell[ii].connections[ii][jj] == 1
+		|| _neighbour_cell[ii].connections[jj][ii] == 1)
 	{
 		return true;
 	}
