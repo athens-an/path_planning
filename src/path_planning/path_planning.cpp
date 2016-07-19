@@ -38,6 +38,11 @@ Planner::Planner()
 		ROS_ERROR("Yaw_limit param does not exist");
 	}
 	
+	if(!_node.getParam("dis_to_target", _dis_to_target))
+    {
+		ROS_ERROR("Dis_to_target param does not exist");
+	}
+	
 	if(!_node.getParam("brushfire_const", _brushfire_const))
     {
 		ROS_ERROR("Brushfire_const param does not exist");
@@ -300,7 +305,7 @@ void Planner::currentPosition(const ros::TimerEvent& e)
 	{
 		tf::StampedTransform transform;
 		
-		_listener.lookupTransform("_map_topic", "_position_topic", ros::Time(0), transform);
+		_listener.lookupTransform(_map_topic, _position_topic, ros::Time(0), transform);
 		
 		_curr_cell_x = transform.getOrigin()[0]; //transform.getOrigin().x()
 		_curr_cell_y = transform.getOrigin()[1];
@@ -555,7 +560,7 @@ std::vector <cell> Planner::reconstructPath (const std::vector <cell>& _came_fro
 												int goal_map_x, int goal_map_y)
 {
 	std::vector <cell> best_path;
-	std::vector <cell> subobjective_path;
+	subobjective_path.clear();
 	
 	best_path.clear();
 	
@@ -684,101 +689,56 @@ void Planner::velocity(const ros::TimerEvent& event)
     twist.angular.x = 0.0;
     twist.angular.y = 0.0;
     twist.angular.z = 0.0;
-	
-	
-	ROS_INFO_STREAM("DOKIMI " << _dokimi);
-	
-	if (_dokimi > 0)
+    
+    if(subobjective_path.size() == 0)
 	{
-		float current_x = _current_pose.x * robot_perception.getMapResolution();
-		float current_y = _current_pose.y * robot_perception.getMapResolution();
-		float sub_target_x = _sub_target.x * robot_perception.getMapResolution();
-		float sub_target_y = _sub_target.y * robot_perception.getMapResolution();
-		
-		float dis = distance(_curr_cell_x, _curr_cell_y, sub_target_x, sub_target_y);
-		float pi = 3.14159;
-		
-		_z = atan2(sub_target_y - current_y, sub_target_x - current_x) / 1.0;
-		
-		
-		float yaw = _yaw;
-		
-		if (dis > 0)
+		_vel_pub.publish(twist);
+		ROS_INFO_STREAM("No target");
+		return;
+	}
+
+	_sub_target.x = _target_x[_dokimi];
+	_sub_target.y = _target_y[_dokimi];
+	float sub_target_x = _sub_target.x * robot_perception.getMapResolution();
+	float sub_target_y = _sub_target.y * robot_perception.getMapResolution();
+	
+	float dis = distance(_curr_cell_x, _curr_cell_y, sub_target_x, sub_target_y);
+	float pi = 3.14159;
+	
+	_z = atan2(sub_target_y - _curr_cell_y, sub_target_x - _curr_cell_x);
+	
+	float yaw = _yaw;
+	
+	if (dis > _dis_to_target)
+	{
+		if (cos(yaw - _z) < _yaw_limit)
 		{
-			if (!(yaw < _z + _yaw_limit && yaw > _z - _yaw_limit))
-			{
-				twist.angular.z = - yaw + atan2(sub_target_y - current_y, sub_target_x - current_x) / 1.0;
-				if (twist.angular.z > - pi && twist.angular.z <= 0)
-				{
-					twist.angular.z = twist.angular.z / pi;
-					
-				}
-				else if (twist.angular.z < - pi && twist.angular.z < 0)
-				{
-					twist.angular.z = (twist.angular.z + 2 * pi) / pi;
-					
-				}
-				else if (twist.angular.z >= pi && twist.angular.z > 0)
-				{
-					twist.angular.z = (twist.angular.z - 2 * pi) / pi;
-					
-				}
-				else if (twist.angular.z < pi && twist.angular.z >= 0)
-				{
-					twist.angular.z = twist.angular.z / pi;
-					
-				}
-				else
-				{
-				}
-				_vel_pub.publish(twist);
-				test();
-			}
-			else
-			{
-				twist.linear.x = 0.05;
-				_vel_pub.publish(twist);
-				ROS_INFO_STREAM("5 ");
-				//~ ROS_INFO_STREAM("X: " << _curr_cell_x << " Y: " << _curr_cell_y);
-				ROS_INFO_STREAM("YAW: " << _yaw << " GOAL_YAW: " << _z);
-				ROS_INFO_STREAM("TWIST: " << twist.angular.z);
-				ROS_INFO_STREAM("CURR_X: " << current_x << " CURR_Y: " << current_y);
-				ROS_INFO_STREAM("SUB_X: " << sub_target_x << " SUB_Y: " << sub_target_y);
-				
-				if (dis < _distance_limit)
-				{
-					_dokimi ++;
-				}
-				test();
-			}
+			twist.angular.z = - sin(yaw - _z) * 0.2;				
+		}
+		else
+		{
+			twist.linear.x = 0.05;
 		}
 	}
 	else
 	{
-		_dokimi ++;
-		test();
+		_dokimi ++;		
+		if(_dokimi >= subobjective_path.size())
+		{
+			subobjective_path.clear();
+		}
 	}
-		
-}
+	ROS_INFO_STREAM(
+		"subtarget: " << _dokimi << "(" << sub_target_x << "," << sub_target_y << "\n" <<
+		"robot: " << "(" << _curr_cell_x << "," << _curr_cell_y << "\n" <<
+		"distance to sub: " << dis << "\n" <<
+		"angle to sub: " << _z << "\n" <<
+		"trig: " << cos(yaw - _z) << " " << sin(yaw - _z) << "\n" <<
+		"speeds: " << twist.linear.x << " " << twist.angular.z << "\n" <<
+		"\n"
+	);
 
-void Planner::test()
-{
-	_current_pose.x = _target_x[_dokimi - 1];
-	_current_pose.y = _target_y[_dokimi - 1];
-	
-	_sub_target.x = _target_x[_dokimi];
-	_sub_target.y = _target_y[_dokimi];
-	
-	if (_dokimi > 0)
-	{
-		_x = _target_x[_dokimi - 1];
-		_y = _target_y[_dokimi - 1];
-	}
-	
-	if ((_current_pose.x == _sub_target.x) && (_current_pose.y == _sub_target.y))
-	{
-		_dokimi = 0;
-	}
+	_vel_pub.publish(twist);
 }
 
 float Planner::distance(float x1, float y1, float x2, float y2)

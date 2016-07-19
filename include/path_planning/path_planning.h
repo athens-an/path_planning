@@ -57,6 +57,7 @@ class Planner {
 	float _duration;
 	float _distance_limit;
 	float _yaw_limit;
+	float _dis_to_target;
 	float _brushfire_const;
 	int _brushfire_limit;
 	
@@ -67,15 +68,13 @@ class Planner {
 	int _goal_cell_y;
 	
 	
-	
+	std::vector <cell> subobjective_path;	
 	float ** g_score;
 	float ** f_score;
 	
 	float * _target_x;
 	float * _target_y;
-	
-	int _x; //krataei th x syntetagmenh toy prohgoymenou current
-	int _y; //krataei thn y syntetagmenh toy prohgoymenou current
+
 	float _z; //krataei thn prohgoumenh twist.angular.z
 
 	

@@ -2,7 +2,7 @@ map_topic: /map
 
 velocity_topic: /robot0/cmd_vel
 
-position_topic: /nao_pose
+position_topic: /art_robot
 
 step_node: 20
 
@@ -10,7 +10,9 @@ duration: 1.0
 
 distance_limit: 0.1
 
-yaw_limit: 0.05
+yaw_limit: 0.95
+
+dis_to_target: 0.1
 
 brushfire_const: 1000
 
