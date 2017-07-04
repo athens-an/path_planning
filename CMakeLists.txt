@@ -222,7 +222,7 @@ add_executable(path_planning
    src/path_planning/path_planning.cpp
 
    src/path_planning/robot_perception.cpp
-   src/path_planning/graph.cpp
+
    src/path_planning/node.cpp
    )
  target_link_libraries(path_planning 

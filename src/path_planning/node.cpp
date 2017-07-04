@@ -9,14 +9,14 @@ Node::Node()
 	
 	_graph_pub = _node.advertise<visualization_msgs::Marker>("visualization_graph", 1);
 	_graph_connections_pub = _node.advertise<visualization_msgs::MarkerArray>("visualization_graph_connection", 1);
+	_marker_pub = _node.advertise<visualization_msgs::Marker>("visualize_graph", 1);
 }
 
-void Node::createNodes(int width, int height, float resolution, int map_size, int curr_map_x, int curr_map_y, int goal_map_x, int goal_map_y)
+void Node::createNodes(int width, int height, float resolution, int map_size, int curr_map_x, 
+						int curr_map_y, int goal_map_x, int goal_map_y)
 {
-	
 	_neighbour_cell_test.clear();
 	node N; // gia uniforms (test)
-	 
 	
 	_counter = 0;
 	int curr_counter = 0;
@@ -39,15 +39,27 @@ void Node::createNodes(int width, int height, float resolution, int map_size, in
 	}
 	
 	int nodes_size = _neighbour_cell_test.size();
+	
+	// elegxw an h ekkinhsh kai o stoxos anhkoun ston grafo
 	for (unsigned int zz = 0; zz < _neighbour_cell_test.size(); zz ++)
 	{
 		if (!(curr_map_x == _neighbour_cell_test[zz].x && curr_map_y == _neighbour_cell_test[zz].y))
 		{
 			curr_counter ++ ;
 		}
+		else
+		{
+			_start_counter = _neighbour_cell_test[zz].node_counter;
+		}
 		if (!(goal_map_x == _neighbour_cell_test[zz].x && goal_map_y == _neighbour_cell_test[zz].y))
 		{
 			goal_counter ++ ;
+			//~ ROS_INFO_STREAM("telos " << _neighbour_cell_test[zz].node_counter);
+		}
+		else
+		{
+			//~ ROS_INFO_STREAM("telos " << _neighbour_cell_test[zz].node_counter);
+			_goal_counter = _neighbour_cell_test[zz].node_counter;
 		}
 	}
 	
@@ -56,6 +68,8 @@ void Node::createNodes(int width, int height, float resolution, int map_size, in
 		N.x = curr_map_x;
 		N.y = curr_map_y;
 		N.node_counter = _counter;
+		//~ ROS_INFO_STREAM("ARXH " << _counter);
+		_start_counter = _counter;
 		_counter ++ ;
 		_neighbour_cell_test.push_back(N);
 	}
@@ -65,13 +79,19 @@ void Node::createNodes(int width, int height, float resolution, int map_size, in
 		N.x = goal_map_x;
 		N.y = goal_map_y;
 		N.node_counter = _counter;
+		//~ ROS_INFO_STREAM("GOAL " << _counter);
+		_goal_counter = _counter;
 		_counter ++ ;
 		_neighbour_cell_test.push_back(N);
 	}
-		
+	//~ ROS_INFO_STREAM("GOAL " << _goal_counter << " " << _neighbour_cell_test[_goal_counter].x << " " << _neighbour_cell_test[_goal_counter].y);
+	//~ ROS_INFO_STREAM("START " << _start_counter << " " << _neighbour_cell_test[_start_counter].x << " " << _neighbour_cell_test[_start_counter].y);
+	
 	createGraph(map_size, resolution);
 	
 	//~ graph_obj.visualGraph(_neighbour_cell.size());
+	float k = 0.02;
+	visualGraph(_neighbour_cell.size(), k);
 	
 }
 
@@ -95,6 +115,9 @@ void Node::createGraph(int map_size, float resolution)
 	
 	float step;
 	
+	float step_x;
+	float step_y;
+	
 	for (unsigned ii = 0; ii < _neighbour_cell_test.size(); ii ++)
 	{
 		M.x = _neighbour_cell_test[ii].x;
@@ -103,19 +126,98 @@ void Node::createGraph(int map_size, float resolution)
 		
 		for (unsigned jj = 0; jj < _neighbour_cell_test.size(); jj ++)
 		{
-			
 			if (ii != jj)
 			{
 				if ((_neighbour_cell_test[ii].x % _step_node == 0 && _neighbour_cell_test[ii].y % _step_node == 0)
 						&& (_neighbour_cell_test[jj].x % _step_node == 0 && _neighbour_cell_test[jj].y % _step_node == 0))
 				{
 					step = _step_node;
+					//~ step_x = _neighbour_cell_test[ii].x - _neighbour_cell_test[jj].x;
+					//~ step_y = _neighbour_cell_test[ii].y - _neighbour_cell_test[jj].y;
+					//~ ROS_INFO_STREAM("1");
 				}
 				else
 				{
 					step = 10;
-				}
+					//~ step_x = _neighbour_cell_test[ii].x - _neighbour_cell_test[jj].x;
+					//~ step_y = _neighbour_cell_test[ii].y - _neighbour_cell_test[jj].y;
+					
+					//~ step_x = 10;
+					//~ step_y = 10;
+					
+					//~ if (step_x > _step_node)
+					//~ {
+						//~ step_x = _step_node;
+						//~ ROS_INFO_STREAM("2 " << step_x);
+					//~ }
+					//~ if (step_x < - _step_node)
+					//~ {
+						//~ step_x = - _step_node;
+						//~ ROS_INFO_STREAM("2 " << step_x);
+					//~ }
+						//~ 
+					//~ if (step_y > _step_node)
+					//~ {
+						//~ step_y = _step_node;
+						//~ ROS_INFO_STREAM("3 " << step_y);
+					//~ }
+					//~ if (step_y < - _step_node)
+					//~ {
+						//~ step_y = _step_node;
+						//~ ROS_INFO_STREAM("3 " << step_y);
+					//~ }
+				//~ }
+				//~ if (step_x > _step_node)
+				//~ {
+					//~ step_x = _step_node;
+					//~ ROS_INFO_STREAM("2 " << step_x);
+				//~ }
+				//~ if (step_x < - _step_node)
+				//~ {
+					//~ step_x = - _step_node;
+					//~ ROS_INFO_STREAM("2 " << step_x);
+				//~ }
+					//~ 
+				//~ if (step_y > _step_node)
+				//~ {
+					//~ step_y = _step_node;
+					//~ ROS_INFO_STREAM("3 " << step_y);
+				//~ }
+				//~ if (step_y < - _step_node)
+				//~ {
+					//~ step_y = _step_node;
+					//~ ROS_INFO_STREAM("3 " << step_y);
+				//~ }
 				
+				//~ if ((_neighbour_cell_test[ii].x == _neighbour_cell_test[jj].x + step_x 
+						//~ && _neighbour_cell_test[ii].y == _neighbour_cell_test[jj].y + step_y))
+				//~ {
+					//~ if (obstacleSearch(_neighbour_cell_test[ii].x, _neighbour_cell_test[ii].y, 	
+														//~ _neighbour_cell_test[jj].x, _neighbour_cell_test[jj].y))
+					//~ {
+						//~ M.connections[ii][jj] = 1;
+						//~ float dis;
+						//~ dis = (_neighbour_cell_test[ii].x - _neighbour_cell_test[jj].x) * (_neighbour_cell_test[ii].x - _neighbour_cell_test[jj].x)
+							//~ + (_neighbour_cell_test[ii].y - _neighbour_cell_test[jj].y) * (_neighbour_cell_test[ii].y - _neighbour_cell_test[jj].y);
+						//~ dis = sqrt(dis);
+						//~ 
+						//~ M.distance[ii][jj] = dis;
+						//~ 
+						//~ if ((jj == _neighbour_cell_test.size() - 1) || (ii == _neighbour_cell_test.size() - 1))
+						//~ {
+							//~ ROS_INFO_STREAM("ti skata " << M.connections[ii][jj] << " " << _neighbour_cell_test[ii].x << " " 
+										//~ << _neighbour_cell_test[ii].y << " " << M.connections[jj][ii] << " " 
+										//~ << _neighbour_cell_test[jj].x << " " << _neighbour_cell_test[jj].y);
+									//~ _neighbour_cell_test[ii].x << " " << _neighbour_cell_test[ii].y << " " << step_x << " "  
+									//~ << _neighbour_cell_test[jj].x << " " << _neighbour_cell_test[jj].y << " " << step_y << " " << dis);
+						//~ }
+					//~ }
+					//~ if (jj == 809 && ii == 1079) 
+					//~ {
+						//~ ROS_INFO_STREAM("ti skata " << _neighbour_cell_test[ii].x << " " << _neighbour_cell_test[ii].y << " " << step_x << " "  
+									//~ << _neighbour_cell_test[jj].x << " " << _neighbour_cell_test[jj].y << " " << step_y);
+					//~ }
+				}
 				
 				if ((_neighbour_cell_test[ii].x == _neighbour_cell_test[jj].x + step 
 						&& _neighbour_cell_test[ii].y == _neighbour_cell_test[jj].y))
@@ -162,20 +264,68 @@ void Node::createGraph(int map_size, float resolution)
 				}
 			
 			}
+			//~ if (M.connections[ii][jj] == 1 && (ii == _neighbour_cell_test.size() - 1 || jj == _neighbour_cell_test.size() - 1))
+			//~ {
+				//~ visual(_neighbour_cell_test[ii].x, _neighbour_cell_test[ii].y, _neighbour_cell_test[jj].x, _neighbour_cell_test[jj].y, ii);
+				//~ ROS_INFO_STREAM("DF");
+			//~ }
 		}
+		
 		
 		_neighbour_cell.push_back(M);
 	}
 	
-	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][635] << " CONNECT2 " << M.connections[635][636]);
-	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][637] << " CONNECT2 " << M.connections[637][636]);
-	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][603] << " CONNECT2 " << M.connections[603][636]);
-	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][604] << " CONNECT2 " << M.connections[604][636]);
-	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][605] << " CONNECT2 " << M.connections[605][636]);
-	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][667] << " CONNECT2 " << M.connections[667][636]);
-	//~ ROS_INFO_STREAM("CONNECT " << M.connections[636][668] << " CONNECT2 " << M.connections[668][636]);
+	//~ ROS_INFO_STREAM("mpike " << _neighbour_cell_test[1079].x << " " << _neighbour_cell_test[1079].y << " " 
+									//~ << _neighbour_cell_test[809].x << " " << _neighbour_cell_test[809].y << " " << 
+									//~ _neighbour_cell[1079].connections[1079][809] << " " << _neighbour_cell[809].connections[809][1079]);
+	
 	visualGraph(_neighbour_cell.size(), resolution);
 	
+}
+
+void Node::visual(float x, float y, float x1, float y1, int ii)
+{
+	visualization_msgs::Marker marker, line;
+	visualization_msgs::MarkerArray line_strip;
+	
+	geometry_msgs::Point p;
+
+	geometry_msgs::Point p1, p2;
+	
+	line.header.frame_id = "map";
+	line.header.stamp = ros::Time::now();
+
+	line.type = visualization_msgs::Marker::LINE_STRIP;
+	line.action = visualization_msgs::Marker::ADD;
+	
+	line.id = ii;
+	
+	line.ns = "graph";
+	line.pose.orientation.w = 1.0;
+	line.scale.x = 0.03;
+	
+	
+	line.color.a = 1.0;
+	line.color.r = 1.0;
+	line.color.g = 0.5;
+	line.color.b = 0.0;
+	
+	p1.x = x * 0.02;
+	p1.y = y * 0.02;
+	p1.z = 0;
+	//~ ROS_INFO_STREAM("X1 " << x1 << " Y1 " << y1);
+	
+	p2.x = x1 * 0.02;
+	p2.y = y1 * 0.02;
+	p2.z = 0;
+	// ROS_INFO_STREAM("X2 " << x1 * _map_resolution << " Y2 " << y1 * _map_resolution);
+	
+	
+	line.points.push_back(p2);
+	line.points.push_back(p1);
+	line_strip.markers.push_back(line);
+		
+	_marker_pub.publish(line);
 }
 
 bool Node::obstacleSearch(int x1, int y1, int x2, int y2)
@@ -186,6 +336,8 @@ bool Node::obstacleSearch(int x1, int y1, int x2, int y2)
 	int x = abs(x1 - x2);
 	int y = abs(y1 - y2);
 	int step;
+	int step_x = x1 - x2;
+	int step_y = y1 - y2;
 	
 	if (x != 0)
 	{
@@ -229,9 +381,14 @@ bool Node::obstacleSearch(int x1, int y1, int x2, int y2)
 		}
 	}
 	
+	
+	//~ if (counter == (abs(step_x) + abs(step_y)))
 	if (counter == step)
 	{
-		//~ ROS_INFO_STREAM("FFFFFF");
+		if (x1 == 600 && y1 == 300)
+		{
+			//~ ROS_INFO_STREAM("TA KATAFERA " << x2 << " " << y2);
+		}
 		obst_flag = true;
 	}
 	
@@ -295,8 +452,8 @@ void Node::visualGraph(int size, float resolution)
 	marker.pose.orientation.z = 0.0;
 	marker.pose.orientation.w = 1.0;
   
-	marker.scale.x = 0.15;
-	marker.scale.y = 0.15;
+	marker.scale.x = 0.05;
+	marker.scale.y = 0.05;
 	marker.scale.z = 0.00;
 	
 	marker.color.a = 1.0;
@@ -307,23 +464,14 @@ void Node::visualGraph(int size, float resolution)
 	
 	for (unsigned int ii = 0; ii < size; ii ++)
 	{
-		//~ if ((_neighbour_cell[ii].x == 740 && _neighbour_cell[ii].y == 680)
-			//~ || (_neighbour_cell[ii].x == 740 && _neighbour_cell[ii].y == 700)
-			//~ || (_neighbour_cell[ii].x == 740 && _neighbour_cell[ii].y == 660)
-			//~ || (_neighbour_cell[ii].x == 720 && _neighbour_cell[ii].y == 680)
-			//~ || (_neighbour_cell[ii].x == 760 && _neighbour_cell[ii].y == 680)
-			//~ || (_neighbour_cell[ii].x == 720 && _neighbour_cell[ii].y == 700)
-			//~ || (_neighbour_cell[ii].x == 720 && _neighbour_cell[ii].y == 660)
-			//~ || (_neighbour_cell[ii].x == 760 && _neighbour_cell[ii].y == 700)
-			//~ || (_neighbour_cell[ii].x == 760 && _neighbour_cell[ii].y == 660))
-			//~ {
 		p.x = _neighbour_cell[ii].x * resolution;
 		p.y = _neighbour_cell[ii].y * resolution;
 		p.z = 0;
-				//~ ROS_INFO_STREAM("X " << _neighbour_cell[ii].x << " Y " << _neighbour_cell[ii].y << " COUNTER " << ii);
+		//~ ROS_INFO_STREAM("X " << _neighbour_cell[ii].x << " Y " 
+				//~ << _neighbour_cell[ii].y << " COUNTER " << ii);
 
 		marker.points.push_back(p);
-			//~ }
+
 	}
 	
 	
@@ -374,12 +522,14 @@ void Node::visualGraph(int size, float resolution)
 				//~ p1.x = _neighbour_cell[ii].x * resolution;
 				//~ p1.y = _neighbour_cell[ii].y * resolution;
 				//~ p1.z = 0;
-				//~ ROS_INFO_STREAM("X1 " << _neighbour_cell[ii].x << " Y1 " << _neighbour_cell[ii].y);
+				//~ ROS_INFO_STREAM("X1 " << _neighbour_cell[ii].x << " Y1 "
+								//~ << _neighbour_cell[ii].y);
 				//~ 
 				//~ p2.x = _neighbour_cell[jj].x * resolution;
 				//~ p2.y = _neighbour_cell[jj].y * resolution;
 				//~ p2.z = 0;
-				//~ ROS_INFO_STREAM("X2 " << _neighbour_cell[jj].x << " Y2 " << _neighbour_cell[jj].y);
+				//~ ROS_INFO_STREAM("X2 " << _neighbour_cell[jj].x << " Y2 " 
+								//~ << _neighbour_cell[jj].y);
 				//~ 
 				//~ 
 				//~ line.points.push_back(p2);
@@ -394,7 +544,7 @@ void Node::visualGraph(int size, float resolution)
 	marker.lifetime = ros::Duration();
 	
 	_graph_pub.publish(marker);
-	_graph_connections_pub.publish(line_strip);
+	//~ _graph_connections_pub.publish(line_strip);
     
 }
 
@@ -412,10 +562,13 @@ bool Node::getObstacleSearch(int ii, int jj)
 	
 }
 
-float Node::getMinDistance(int ii, int last_curr_node)
+float Node::getMinDistance(int ii, int last_curr_node) // to ii einai to trexon node, dhladh h arxh
 {
 	float infinity = std::numeric_limits<float>::infinity();
 	float min = infinity;
+	//~ ROS_INFO_STREAM(" " << _neighbour_cell[ii].x << " " << _neighbour_cell[ii].y);
+	//~ ROS_INFO_STREAM(" " << _neighbour_cell[last_curr_node].x << " " << _neighbour_cell[last_curr_node].y);
+	//~ ROS_INFO_STREAM("MIN222: " << min << "   " << _neighbour_cell.size());
 	for (unsigned jj = 0; jj < _neighbour_cell.size(); jj ++)
 	{
 		if (jj != last_curr_node)
@@ -431,12 +584,11 @@ float Node::getMinDistance(int ii, int last_curr_node)
 		}
 	}
 	
-	//~ ROS_INFO_STREAM("MIN " << min);
-	
+	//~ ROS_INFO_STREAM("MIN: " << min);
 	return min;
 }
 
-//ean einai auto to shmeio tou xarth sto grafo
+//ean einai auto to shmeio tou xarth ston grafo
 bool Node::getPixelGraph(int x, int y)
 {
 	bool flag = false;
@@ -450,6 +602,20 @@ bool Node::getPixelGraph(int x, int y)
 	
 	return flag;
 }
+
+int Node::startCounter()
+{
+	return _start_counter;
+}
+
+int Node::goalCounter()
+{
+	return _goal_counter;
+}
+
+
+
+
 
 
 
